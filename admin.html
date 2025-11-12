@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mail Integration Admin</title>
+<style>
+  :root { --radius:14px; --gap:12px; --focus:#7fc4ff; }
+  :root, html[data-theme="dark"] {
+    --bg:#0a0f16; --panel:#0d1421; --ink:#ffffff; --text:#e7edf4; --muted:#c4d0dd;
+    --line:#2c3a4f; --card:#111a2a; --card-hover:#162236; --banner:#0c1322;
+    --detail:#0f1829; --btn:#122033; --btn-hover:#16273e; --accent-muted:#a6b8cf;
+    --shadow:0 6px 28px rgba(0,0,0,.35);
+  }
+  html[data-theme="light"] {
+    --bg:#f6f8fb; --panel:#ffffff; --ink:#0a0f16; --text:#111827; --muted:#4b5563;
+    --line:#d3d9e3; --card:#ffffff; --card-hover:#f4f7fb; --banner:#f0f5fb;
+    --detail:#f9fbff; --btn:#eef3fb; --btn-hover:#e3ebf8; --accent-muted:#6b7e95;
+    --shadow:0 3px 16px rgba(2,6,23,.1); --focus:#2563eb;
+  }
+  *{box-sizing:border-box} html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font: clamp(15px,1.6vw,17px)/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial;
+    display:grid;place-items:center;padding:clamp(16px,3vw,28px);transition:background .2s,color .2s}
+  .frame{width:min(1100px,98vw);background:var(--panel);border:2px solid var(--line);border-radius:18px;padding:clamp(12px,2.2vw,18px);box-shadow:var(--shadow)}
+  .inner{display:grid;gap:16px;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:18px}
+  .banner{display:flex;align-items:center;justify-content:space-between;background:var(--banner);border:2px solid var(--line);border-radius:12px;padding:12px 14px}
+  .title{display:flex;gap:10px;align-items:center;color:var(--ink);font-weight:800}
+  .nav{display:flex;gap:10px;align-items:center}
+  .link{color:var(--ink);text-decoration:none;font-weight:700;padding:8px 12px;border-radius:10px;border:2px solid var(--line);background:var(--btn)}
+  .link:hover{background:var(--btn-hover)}
+  .switch{display:inline-flex;align-items:center;gap:10px;margin-left:10px}
+  .toggle{width:54px;height:30px;border-radius:100px;border:2px solid var(--line);background:var(--btn);position:relative;cursor:pointer}
+  .toggle:hover{background:var(--btn-hover)} .knob{width:22px;height:22px;border-radius:50%;background:var(--ink);
+    position:absolute;top:50%;transform:translateY(-50%);left:4px;transition:left .2s}
+  html[data-theme="light"] .knob{left:28px}
+
+  table{width:100%;border-collapse:separate;border-spacing:0}
+  th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left}
+  th{color:var(--ink)}
+  tr:hover{background:var(--card-hover)}
+  .actions{display:flex;gap:10px;flex-wrap:wrap}
+  .btn{appearance:none;border:2px solid var(--line);background:var(--btn);color:var(--text);padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer;min-height:44px}
+  .btn:hover{background:var(--btn-hover)}
+  .detail{background:var(--detail);border:2px solid var(--line);border-radius:12px;padding:14px}
+</style>
+</head>
+<body>
+  <main class="frame">
+    <section class="inner">
+      <div class="banner">
+        <div class="title"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 6-3.4 10.5H6.4L3 8l9-6z"/></svg> Mail Integration (Outlook)</div>
+        <div class="nav">
+          <a class="link" href="index.html">Activity</a>
+          <a class="link" href="admin.html">Admin</a>
+          <div class="switch"><span id="themeLabel">Dark</span><button class="toggle" id="themeToggle"><span class="knob"></span></button></div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn" id="reset">Reset Test Data</button>
+        <button class="btn" id="logout">Log out</button>
+      </div>
+
+      <div class="detail">
+        <h3 style="margin:0 0 8px 0;color:var(--ink)">Inbox (test data)</h3>
+        <div style="overflow:auto">
+          <table id="tbl">
+            <thead><tr><th>From</th><th>Subject</th><th>Status</th><th>Received</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+<script>
+  const DB_KEY='faux-emails', AUTH_KEY='faux-auth';
+  function seedDB(){
+    if(localStorage.getItem(DB_KEY)) return;
+    const now=Date.now();
+    const emails=[
+      {id:'e1', from:'billing@tenant.io', subject:'Payment overdue: INV-1043', body:'Please process the pending invoice within 3 days to avoid late fees.', status:'urgent', received: now-3600*1000*6},
+      {id:'e2', from:'noreply@mailer.ai', subject:'Draft reply prepared', body:'AI drafted a response to tenant question about parking. Review and approve.', status:'draft', received: now-3600*1000*12},
+      {id:'e3', from:'support@locks.example', subject:'Smartlock offline – needs context', body:'Device reported intermittent connectivity. Do you want AI to attempt a reset?', status:'needs_context', received: now-3600*1000*22},
+      {id:'e4', from:'updates@crm.example', subject:'Profile note: tenant has a dog', body:'FYI: Add pet note to the profile. No action required.', status:'info', received: now-3600*1000*30},
+      {id:'e5', from:'system@ops.example', subject:'Unhandled case detected', body:'AI could not determine a safe action. Manual review required.', status:'manual', received: now-3600*1000*40}
+    ];
+    localStorage.setItem(DB_KEY, JSON.stringify(emails));
+  }
+  function fmt(ts){return new Date(ts).toLocaleString()}
+  function ensureAuth(){ if(!localStorage.getItem(AUTH_KEY)){ window.location.href='index.html'; } }
+  function setTheme(theme){
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('notif-theme', theme);
+    document.getElementById('themeLabel').textContent = theme==='light' ? 'Light' : 'Dark';
+  }
+  (function initTheme(){
+    const stored = localStorage.getItem('notif-theme');
+    if(stored){ setTheme(stored); } else {
+      const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+      setTheme(prefersLight ? 'light' : 'dark');
+    }
+  })();
+  ensureAuth(); seedDB();
+
+  const tbody = document.querySelector('#tbl tbody');
+  function render(){
+    const emails = JSON.parse(localStorage.getItem(DB_KEY)||'[]');
+    tbody.innerHTML = emails.map(e => \`
+      <tr>
+        <td>\${e.from}</td>
+        <td>\${e.subject}</td>
+        <td>\${e.status}</td>
+        <td>\${fmt(e.received)}</td>
+        <td><button class="btn" data-id="\${e.id}">View</button></td>
+      </tr>\`).join('');
+    tbody.querySelectorAll('button[data-id]').forEach(b => b.onclick = () => viewEmail(b.getAttribute('data-id')));
+  }
+  function viewEmail(id){
+    const emails = JSON.parse(localStorage.getItem(DB_KEY)||'[]');
+    const e = emails.find(x=>x.id===id); if(!e) return;
+    const viewer = document.createElement('div');
+    viewer.className='detail';
+    viewer.innerHTML = \`<h3 style="margin:0 0 8px 0;color:var(--ink)">\${e.subject}</h3>
+      <p><strong>From:</strong> \${e.from} • <strong>Received:</strong> \${fmt(e.received)}</p>
+      <p style="margin-top:8px">\${e.body}</p>\`;
+    document.querySelector('.inner').appendChild(viewer);
+    viewer.scrollIntoView({behavior:'smooth'});
+  }
+
+  document.getElementById('reset').onclick = ()=>{ localStorage.removeItem(DB_KEY); seedDB(); render(); };
+  document.getElementById('logout').onclick = ()=>{ localStorage.removeItem('faux-auth'); window.location.href='index.html'; };
+  document.getElementById('themeToggle').onclick = ()=>{
+    const current = document.documentElement.getAttribute('data-theme')||'dark';
+    setTheme(current==='dark' ? 'light' : 'dark');
+  };
+  render();
+</script>
+</body>
+</html>
