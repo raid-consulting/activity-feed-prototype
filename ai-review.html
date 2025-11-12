@@ -246,6 +246,14 @@
 <script>
   const DB_KEY='faux-emails', AUTH_KEY='faux-auth';
   const LOAD_TIMEOUT_MS=10000;
+  const MAX_LOAD_ATTEMPTS=2;
+  const LOG_PREFIX='[ai_review]';
+
+  function logInfo(event,payload){
+    if(window && window.console && typeof window.console.info==='function'){
+      window.console.info(`${LOG_PREFIX} ${event}`, payload);
+    }
+  }
 
   const telemetry=(window.telemetry && typeof window.telemetry.log==='function')
     ? window.telemetry
@@ -476,7 +484,10 @@
     detailId:null,
     errorMessage:'',
     lastView:VIEW_STATES.IDLE,
-    pendingLoad:false
+    pendingLoad:false,
+    lastBanner:'none',
+    lastStateSignature:'',
+    lastBannerSignature:''
   };
 
   const REFRESH_INTERVAL = window.AutoRefresh ? window.AutoRefresh.DEFAULT_INTERVAL : 15000;
@@ -568,7 +579,7 @@
 
     if(!filtered.length){
       groupContainer.innerHTML='';
-      return false;
+      return {hasVisible:false,visibleCount:0};
     }
 
     const groups=['green','blue','red','grey'];
@@ -615,23 +626,27 @@
     groupContainer.querySelectorAll('.card[data-id]').forEach(btn=>{
       btn.addEventListener('click',()=>openDetail(btn.getAttribute('data-id')));
     });
-    return true;
+    return {hasVisible:true,visibleCount:filtered.length};
   }
 
   function render(){
     const view=state.view;
     const shouldRenderList=view===VIEW_STATES.SUCCESS || view===VIEW_STATES.DEGRADED;
-    let hasVisible=false;
+    const previousBanner=state.lastBanner||'none';
+    let listInfo={hasVisible:false,visibleCount:0};
 
     if(view!==VIEW_STATES.LOADING){
       updateCounts(state.items);
     }
 
     if(shouldRenderList){
-      hasVisible=renderList();
+      listInfo=renderList();
     } else {
       groupContainer.innerHTML='';
     }
+
+    const hasVisible=listInfo.hasVisible;
+    const visibleCount=listInfo.visibleCount;
 
     if(loadingState){
       loadingState.hidden=view!==VIEW_STATES.LOADING;
@@ -641,32 +656,73 @@
       groupContainer.hidden=!shouldRenderList || !hasVisible;
     }
 
+    const bannerCandidates=[];
+    if(view===VIEW_STATES.ERROR){
+      bannerCandidates.push({id:'error',reason:'final_error',message:state.errorMessage||DEFAULT_ERROR_MESSAGE});
+    }
+    if(view===VIEW_STATES.DEGRADED){
+      bannerCandidates.push({id:'degraded',reason:'using_cached_results',message:state.errorMessage||'Showing cached results while we reconnect…',itemCount:state.items.length});
+    }
+    if(view===VIEW_STATES.EMPTY){
+      bannerCandidates.push({id:'empty',reason:'no_items_to_review'});
+    }
+    if(view===VIEW_STATES.SUCCESS && shouldRenderList && state.items.length>0 && !hasVisible){
+      bannerCandidates.push({id:'no_results',reason:'filters_hide_all',filter:state.filter,search:state.search});
+    }
+
+    const priorityOrder=['error','degraded','empty','no_results'];
+    bannerCandidates.sort((a,b)=>priorityOrder.indexOf(a.id)-priorityOrder.indexOf(b.id));
+    const activeBanner=bannerCandidates.length?bannerCandidates[0].id:'none';
+
+    const bannerSignature=JSON.stringify({selected:activeBanner,candidates:bannerCandidates.map(c=>c.id)});
+    if(state.lastBannerSignature!==bannerSignature){
+      state.lastBannerSignature=bannerSignature;
+      logInfo('banner_decision', {
+        view,
+        selected:activeBanner,
+        candidates:bannerCandidates.map(c=>({id:c.id,reason:c.reason})),
+        filter:state.filter,
+        search:state.search,
+        itemCount:state.items.length,
+        visibleCount
+      });
+    }
+
+    if(bannerCandidates.length>1){
+      logInfo('banner_conflict', {
+        view,
+        selected:activeBanner,
+        conflicts:bannerCandidates.slice(1).map(c=>({id:c.id,reason:c.reason})),
+        candidates:bannerCandidates.map(c=>({id:c.id,reason:c.reason}))
+      });
+    }
+
     if(noResultsNotice){
-      const showNoResults=shouldRenderList && state.items.length>0 && !hasVisible;
+      const showNoResults=activeBanner==='no_results';
       noResultsNotice.hidden=!showNoResults;
     }
 
     if(emptyState){
-      const showEmpty=view===VIEW_STATES.EMPTY;
+      const showEmpty=activeBanner==='empty';
       emptyState.hidden=!showEmpty;
-      if(showEmpty && state.lastView!==VIEW_STATES.EMPTY && typeof emptyState.focus==='function'){
+      if(showEmpty && previousBanner!=='empty' && typeof emptyState.focus==='function'){
         emptyState.focus();
       }
     }
 
     if(errorState){
-      const showError=view===VIEW_STATES.ERROR;
+      const showError=activeBanner==='error';
       errorState.hidden=!showError;
       if(showError && errorMessage){
         errorMessage.textContent=state.errorMessage || DEFAULT_ERROR_MESSAGE;
       }
-      if(showError && state.lastView!==VIEW_STATES.ERROR && typeof errorState.focus==='function'){
+      if(showError && previousBanner!=='error' && typeof errorState.focus==='function'){
         errorState.focus();
       }
     }
 
     if(degradedBanner){
-      const showDegraded=view===VIEW_STATES.DEGRADED;
+      const showDegraded=activeBanner==='degraded';
       degradedBanner.hidden=!showDegraded;
       if(showDegraded && degradedMessage){
         degradedMessage.textContent=state.errorMessage || 'Showing cached results while we reconnect…';
@@ -678,6 +734,27 @@
     }
 
     state.lastView=view;
+    state.lastBanner=activeBanner;
+
+    const stateSignature=JSON.stringify({
+      view,
+      itemCount:state.items.length,
+      visibleCount,
+      filter:state.filter,
+      search:state.search,
+      hasCached:state.cachedItems.length>0
+    });
+    if(state.lastStateSignature!==stateSignature){
+      state.lastStateSignature=stateSignature;
+      logInfo('ai_review_state', {
+        view,
+        itemCount:state.items.length,
+        visibleCount,
+        filter:state.filter,
+        search:state.search,
+        hasCached:state.cachedItems.length>0
+      });
+    }
   }
 
   function setItems(items,{cache=false}={}){
@@ -774,7 +851,16 @@
       render();
       ensureAutoRefresh();
     };
-    fetchLatestItems()
+    const attemptFetch=(attempt=1)=>{
+      return fetchLatestItems().catch(err=>{
+        if(attempt<MAX_LOAD_ATTEMPTS){
+          return attemptFetch(attempt+1);
+        }
+        throw err;
+      });
+    };
+
+    attemptFetch()
       .then(handleSuccess)
       .catch(err=>handleFailure(err && err.message ? err.message : DEFAULT_ERROR_MESSAGE));
     activeLoadTimer=setTimeout(()=>{
