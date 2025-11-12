@@ -128,11 +128,11 @@
     if(localStorage.getItem(DB_KEY)) return;
     const now = Date.now();
     const emails = [
-      {id:'e1', from:'billing@tenant.io', subject:'Payment overdue: INV-1043', body:'Please process the pending invoice within 3 days to avoid late fees.', status:'urgent', received: now-3600*1000*6},
-      {id:'e2', from:'noreply@mailer.ai', subject:'Draft reply prepared', body:'AI drafted a response to tenant question about parking. Review and approve.', status:'draft', received: now-3600*1000*12},
-      {id:'e3', from:'support@locks.example', subject:'Smartlock offline – needs context', body:'Device reported intermittent connectivity. Do you want AI to attempt a reset?', status:'needs_context', received: now-3600*1000*22},
-      {id:'e4', from:'updates@crm.example', subject:'Profile note: tenant has a dog', body:'FYI: Add pet note to the profile. No action required.', status:'info', received: now-3600*1000*30},
-      {id:'e5', from:'system@ops.example', subject:'Unhandled case detected', body:'AI could not determine a safe action. Manual review required.', status:'manual', received: now-3600*1000*40}
+      {id:'e1', from:'billing@tenant.io', subject:'Payment overdue: INV-1043', body:'Please process the pending invoice within 3 days to avoid late fees.', status:'urgent', received: now-3600*1000*6, aiCategory:'red', aiSynopsis:'Manual review required to confirm payment details before automation can resume.'},
+      {id:'e2', from:'noreply@mailer.ai', subject:'Draft reply prepared', body:'AI drafted a response to tenant question about parking. Review and approve.', status:'draft', received: now-3600*1000*12, aiCategory:'green', aiSynopsis:'Automated draft is ready — only a quick approval is needed.'},
+      {id:'e3', from:'support@locks.example', subject:'Smartlock offline – needs context', body:'Device reported intermittent connectivity. Do you want AI to attempt a reset?', status:'needs_context', received: now-3600*1000*22, aiCategory:'blue', aiSynopsis:'Additional environment context requested before continuing with automation.'},
+      {id:'e4', from:'updates@crm.example', subject:'Profile note: tenant has a dog', body:'FYI: Add pet note to the profile. No action required.', status:'info', received: now-3600*1000*30, aiSynopsis:'Informational update only — automation metadata pending.'},
+      {id:'e5', from:'system@ops.example', subject:'Unhandled case detected', body:'AI could not determine a safe action. Manual review required.', status:'manual', received: now-3600*1000*40, aiCategory:'red', aiSynopsis:'AI fell back to manual handling due to conflicting signals.'}
     ];
     localStorage.setItem(DB_KEY, JSON.stringify(emails));
   }
@@ -168,6 +168,7 @@
   function globalMenuHtml({authed=false, user=''}={}){
     const navItems = [
       `<a class="link" href="index.html">Activity</a>`,
+      `<a class="link" href="ai-review.html">AI review</a>`,
       `<a class="link" href="admin.html">Admin</a>`
     ];
     if(authed){
