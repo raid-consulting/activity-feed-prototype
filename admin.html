@@ -54,6 +54,23 @@
   .btn{appearance:none;border:2px solid var(--line);background:var(--btn);color:var(--text);padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer;min-height:44px}
   .btn:hover{background:var(--btn-hover)}
   .detail{background:var(--detail);border:2px solid var(--line);border-radius:12px;padding:14px}
+  .ai-section{display:grid;gap:10px;margin-top:14px}
+  .ai-field-grid{display:grid;gap:10px}
+  .ai-field-grid .ai-field{display:grid;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px}
+  .ai-field-grid dt{margin:0;font-weight:700;color:var(--ink);font-size:clamp(13px,1.5vw,15px)}
+  .ai-field-grid dd{margin:0;color:var(--text);font-size:clamp(13px,1.6vw,15px);word-break:break-word}
+  .ai-field-grid ul{margin:6px 0 0 18px;padding:0;color:inherit}
+  .ai-field-grid li{margin:2px 0}
+  .ai-field-grid .ai-empty{color:var(--muted);font-style:italic}
+  .override-form{display:grid;gap:10px;margin-top:4px}
+  .override-form h5{margin:0;color:var(--ink);font-size:clamp(14px,1.7vw,16px)}
+  .override-form label{display:grid;gap:6px;font-weight:600;color:var(--ink)}
+  .override-form select,.override-form textarea{padding:10px 12px;border:2px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);font:inherit;min-height:44px}
+  .override-form textarea{min-height:90px;resize:vertical}
+  .override-form .form-actions{display:flex;gap:10px;flex-wrap:wrap}
+  .override-status{font-size:clamp(12px,1.4vw,14px)}
+  .override-status[data-status="error"]{color:var(--red)}
+  .override-status[data-status="success"]{color:var(--green)}
   .crumbs{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:clamp(13px,1.6vw,15px);margin-bottom:12px}
   .crumbs strong{color:var(--ink)}
   .crumbs button{background:none;border:none;color:var(--ink);font-weight:700;cursor:pointer;padding:0;font-size:inherit}
@@ -92,24 +109,33 @@
         <h3 id="detailHeading" style="margin:0 0 8px 0;color:var(--ink)">Select an email</h3>
         <p id="detailMeta">Choose a message from the inbox to review its contents.</p>
         <p id="detailBody"></p>
-        <section id="detailAiSection" style="display:grid;gap:6px;margin-top:14px">
+        <section id="detailAiSection" class="ai-section">
           <h4 style="margin:0;color:var(--ink);font-size:clamp(15px,1.8vw,17px)">AI readiness</h4>
-          <p class="meta" id="detailAiCategory">Category: Grey</p>
-          <p class="meta" id="detailAiConfidence">Confidence: –</p>
-          <p class="meta" id="detailAiAssessed">Assessed: –</p>
-          <p class="meta" id="detailAiNotes">Notes: Metadata pending.</p>
-          <p class="meta" id="detailAiBlockers">Blockers: None</p>
-          <p class="meta" id="detailAiPermissions">Required permissions: None</p>
-          <p class="meta" id="detailAiContext">Required context: None</p>
-          <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:10px">
-            <button class="btn" type="button" id="detailReassess">Reassess AI metadata</button>
-          </div>
+          <dl class="ai-field-grid" id="detailAiFields"></dl>
+          <form class="override-form" id="manualOverrideForm">
+            <h5>Manual override</h5>
+            <label for="overrideCategory">Category</label>
+            <select id="overrideCategory" name="overrideCategory">
+              <option value="grey">Grey — Metadata pending</option>
+              <option value="green">Green — Ready for automation</option>
+              <option value="blue">Blue — Needs context</option>
+              <option value="red">Red — Manual review</option>
+            </select>
+            <label for="overrideNote">Note (optional)</label>
+            <textarea id="overrideNote" name="overrideNote" placeholder="Add context for this override"></textarea>
+            <div class="form-actions">
+              <button class="btn" type="submit" id="overrideSubmit">Save override</button>
+              <button class="btn" type="button" id="detailReassess">Reassess AI metadata</button>
+            </div>
+            <p class="meta override-status" id="overrideStatus" role="status" hidden></p>
+          </form>
         </section>
       </div>
     </section>
   </main>
 
 <script src="ai-classifier.js"></script>
+<script src="manual-override-service.js"></script>
 <script>
   const DB_KEY='faux-emails', AUTH_KEY='faux-auth';
   function svgPentagon(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 6-3.4 10.5H6.4L3 8l9-6z"/></svg>'; }
@@ -196,7 +222,13 @@
     if(window.AIClassifier){
       emails.forEach(email => {
         const version = email.ai && email.ai.assessor_version;
-        if(!email.ai || version !== window.AIClassifier.VERSION){
+        if(!email.ai){
+          window.AIClassifier.applyAssessment(email);
+          mutated = true;
+        } else if(version === 'manual-override'){
+          email.aiCategory = email.ai.category;
+          email.aiSynopsis = email.ai.notes;
+        } else if(version !== window.AIClassifier.VERSION){
           window.AIClassifier.applyAssessment(email);
           mutated = true;
         } else {
@@ -256,38 +288,107 @@
   const detailHeading = document.getElementById('detailHeading');
   const detailMeta = document.getElementById('detailMeta');
   const detailBody = document.getElementById('detailBody');
-  const detailAiCategory = document.getElementById('detailAiCategory');
-  const detailAiConfidence = document.getElementById('detailAiConfidence');
-  const detailAiAssessed = document.getElementById('detailAiAssessed');
-  const detailAiNotes = document.getElementById('detailAiNotes');
-  const detailAiBlockers = document.getElementById('detailAiBlockers');
-  const detailAiPermissions = document.getElementById('detailAiPermissions');
-  const detailAiContext = document.getElementById('detailAiContext');
+  const detailAiFields = document.getElementById('detailAiFields');
+  const manualOverrideForm = document.getElementById('manualOverrideForm');
+  const overrideCategory = document.getElementById('overrideCategory');
+  const overrideNote = document.getElementById('overrideNote');
+  const overrideSubmit = document.getElementById('overrideSubmit');
+  const overrideStatus = document.getElementById('overrideStatus');
   const detailReassess = document.getElementById('detailReassess');
   const backToList = document.getElementById('backToList');
 
   let activeEmailId = null;
 
-  function titleCase(str=''){
-    if(!str) return 'Grey';
-    return str.charAt(0).toUpperCase() + str.slice(1);
+  const AI_FIELD_ORDER = ['category', 'notes', 'assessor_version', 'assessed_at', 'confidence', 'blockers', 'required_permissions', 'required_context'];
+  const ALLOWED_CATEGORIES = ['grey', 'green', 'blue', 'red'];
+
+  function ensureAiObject(value){
+    return value && typeof value === 'object' ? value : {};
   }
 
-  function formatList(items, fallback='None'){
-    return Array.isArray(items) && items.length ? items.join(', ') : fallback;
+  function formatAiValue(value){
+    if(Array.isArray(value)){
+      if(!value.length){
+        return '<span class="ai-empty">None</span>';
+      }
+      return `<ul>${value.map(item => `<li>${escapeHtml(String(item))}</li>`).join('')}</ul>`;
+    }
+    if(value === null || value === undefined || value === ''){
+      return '<span class="ai-empty">None</span>';
+    }
+    if(typeof value === 'object'){
+      return `<pre style="margin:0">${escapeHtml(JSON.stringify(value, null, 2))}</pre>`;
+    }
+    return `<span>${escapeHtml(String(value))}</span>`;
+  }
+
+  function renderAiFields(ai){
+    if(!detailAiFields) return;
+    const source = ensureAiObject(ai);
+    const entries = [];
+    const used = new Set();
+    AI_FIELD_ORDER.forEach(key => {
+      if(Object.prototype.hasOwnProperty.call(source, key)){
+        entries.push([key, source[key]]);
+        used.add(key);
+      }
+    });
+    Object.keys(source).forEach(key => {
+      if(!used.has(key)){
+        entries.push([key, source[key]]);
+      }
+    });
+    if(!entries.length){
+      detailAiFields.innerHTML = '<div class="ai-field"><dt>ai</dt><dd><span class="ai-empty">No AI metadata available.</span></dd></div>';
+      return;
+    }
+    detailAiFields.innerHTML = entries.map(([key, value]) => `
+      <div class="ai-field">
+        <dt>${escapeHtml(`ai.${key}`)}</dt>
+        <dd>${formatAiValue(value)}</dd>
+      </div>
+    `).join('');
+  }
+
+  function clearOverrideStatus(){
+    if(!overrideStatus) return;
+    overrideStatus.hidden = true;
+    overrideStatus.textContent = '';
+    overrideStatus.removeAttribute('data-status');
+  }
+
+  function setOverrideStatus(message, status){
+    if(!overrideStatus) return;
+    overrideStatus.textContent = message;
+    overrideStatus.hidden = false;
+    if(status){
+      overrideStatus.setAttribute('data-status', status);
+    } else {
+      overrideStatus.removeAttribute('data-status');
+    }
+  }
+
+  function hydrateOverrideControls(ai){
+    if(!manualOverrideForm) return;
+    const category = (ai && ai.category ? String(ai.category).toLowerCase() : 'grey');
+    const normalized = ALLOWED_CATEGORIES.includes(category) ? category : 'grey';
+    if(overrideCategory){
+      overrideCategory.value = normalized;
+    }
+    if(overrideNote){
+      const note = ai && ai.assessor_version === 'manual-override' ? (ai.notes || '') : '';
+      overrideNote.value = note === 'Manual override applied.' ? '' : note;
+    }
+    clearOverrideStatus();
+    if(overrideSubmit){
+      overrideSubmit.disabled = false;
+    }
   }
 
   function populateAi(email){
-    const ai = email.ai || {};
-    const confidence = typeof ai.confidence === 'number' ? `${Math.round(ai.confidence * 100)}%` : '–';
-    const assessed = ai.assessed_at ? new Date(ai.assessed_at).toLocaleString() : '–';
-    detailAiCategory.textContent = `Category: ${titleCase(ai.category || 'grey')}`;
-    detailAiConfidence.textContent = `Confidence: ${confidence}`;
-    detailAiAssessed.textContent = `Assessed: ${assessed}`;
-    detailAiNotes.textContent = `Notes: ${ai.notes || 'Metadata pending.'}`;
-    detailAiBlockers.textContent = `Blockers: ${formatList(ai.blockers)}`;
-    detailAiPermissions.textContent = `Required permissions: ${formatList(ai.required_permissions)}`;
-    detailAiContext.textContent = `Required context: ${formatList(ai.required_context)}`;
+    const ai = ensureAiObject(email.ai);
+    renderAiFields(ai);
+    hydrateOverrideControls(ai);
   }
 
   function showList(){
@@ -306,6 +407,55 @@
   }
 
   backToList.addEventListener('click', showList);
+
+  function overrideFetchStub(url, options){
+    return Promise.resolve({ ok: true, url, options });
+  }
+
+  async function submitManualOverride(event){
+    event.preventDefault();
+    if(!manualOverrideForm || !window.ManualOverrideService){
+      setOverrideStatus('Manual override service unavailable.', 'error');
+      return;
+    }
+    if(!activeEmailId){
+      setOverrideStatus('Select a message before saving an override.', 'error');
+      return;
+    }
+    if(overrideSubmit){
+      overrideSubmit.disabled = true;
+    }
+    clearOverrideStatus();
+    try {
+      await window.ManualOverrideService.persistOverride({
+        id: activeEmailId,
+        category: overrideCategory ? overrideCategory.value : 'grey',
+        note: overrideNote ? overrideNote.value : ''
+      }, {
+        storage: localStorage,
+        now: new Date(),
+        fetchImpl: overrideFetchStub
+      });
+      const emails = getEmails();
+      const refreshed = emails.find(item => item.id === activeEmailId);
+      if(refreshed){
+        showDetail(refreshed);
+      }
+      setOverrideStatus('Manual override saved.', 'success');
+      render();
+    } catch (err){
+      const message = err && err.message ? err.message : 'Unable to save manual override.';
+      setOverrideStatus(`Failed to save override: ${message}`, 'error');
+    } finally {
+      if(overrideSubmit){
+        overrideSubmit.disabled = false;
+      }
+    }
+  }
+
+  if(manualOverrideForm){
+    manualOverrideForm.addEventListener('submit', submitManualOverride);
+  }
 
   function render(){
     const emails = getEmails();

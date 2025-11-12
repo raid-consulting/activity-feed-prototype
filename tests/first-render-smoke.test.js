@@ -18,4 +18,4 @@ function verifyInlineScript(fileName) {
   }
 }
 
-['index.html', 'ai-review.html'].forEach(verifyInlineScript);
+['index.html', 'ai-review.html', 'admin.html'].forEach(verifyInlineScript);
