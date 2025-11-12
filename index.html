@@ -11,6 +11,9 @@
     --focus:#6ea4e8;
     --page-pad:clamp(16px,3vw,28px);
     --frame-gap:clamp(12px,2.2vw,18px);
+    --shell-header-height:72px;
+    --shell-header-pad-block:14px;
+    --shell-header-pad-inline:clamp(12px,2.2vw,16px);
     --footer-safe-area:env(safe-area-inset-bottom);
     --card-stripe:clamp(6px,1vw,10px);
   }
@@ -45,13 +48,15 @@
     border:2px solid var(--line);border-radius:14px;padding:clamp(14px,2.2vw,20px);position:relative}
 
   /* Global navigation */
-  .global-menu{display:flex;align-items:center;justify-content:space-between;
-    padding:clamp(10px,1.8vw,14px) clamp(12px,2.2vw,16px);background:var(--banner);
-    border:2px solid var(--line);border-radius:12px;flex-wrap:wrap;gap:12px}
+  .global-menu{display:flex;align-items:center;justify-content:space-between;gap:clamp(12px,2vw,18px);
+    padding:var(--shell-header-pad-block) var(--shell-header-pad-inline);background:var(--banner);
+    border:2px solid var(--line);border-radius:12px;min-height:var(--shell-header-height);flex-wrap:nowrap}
   .global-title{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.2px;
-    font-size:clamp(18px,2.2vw,21px);color:var(--ink)}
-  .global-nav{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end;margin-left:auto}
-  .link{color:var(--ink);text-decoration:none;font-weight:700;padding:8px 12px;border-radius:10px;border:2px solid var(--line);background:var(--btn);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-height:40px}
+    font-size:clamp(18px,2.2vw,21px);color:var(--ink);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .global-nav{display:flex;gap:10px;align-items:center;flex-wrap:nowrap;justify-content:flex-start;margin-left:auto;min-width:0;
+    overflow-x:auto;scrollbar-width:none}
+  .global-nav::-webkit-scrollbar{display:none}
+  .link{color:var(--ink);text-decoration:none;font-weight:700;padding:8px 12px;border-radius:10px;border:2px solid var(--line);background:var(--btn);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-height:40px;white-space:nowrap;flex:0 0 auto}
   .link:hover{background:var(--btn-hover)}
   .link[aria-current="page"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
   .toggle{width:54px;height:30px;border-radius:100px;border:2px solid var(--line);background:var(--btn);position:relative;cursor:pointer}
