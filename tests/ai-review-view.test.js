@@ -79,10 +79,10 @@ function createSampleEmail(id, overrides={}){
 }
 
 async function mountAiReview({ loader, seedEmails, cachedEmails }={}){
-  const logs = { error: [], warn: [] };
+  const logs = { error: [], warn: [], info: [] };
   const consoleStub = {
     log: () => {},
-    info: () => {},
+    info: (...args) => { logs.info.push(args); },
     debug: () => {},
     warn: (...args) => { logs.warn.push(args); },
     error: (...args) => { logs.error.push(args); },
@@ -342,6 +342,17 @@ async function settle(env, cycles=3){
   }
 }
 
+function getInfoLogs(env, event){
+  return env.logs.info
+    .filter(args => args[0] === '[ai_review]' && args[1] === event)
+    .map(args => args[2]);
+}
+
+function getLatestInfo(env, event){
+  const entries = getInfoLogs(env, event);
+  return entries.length ? entries[entries.length - 1] : null;
+}
+
 async function testSuccessWithItems(){
   const items = [createSampleEmail('a1'), createSampleEmail('a2')];
   const env = await mountAiReview({ loader: () => Promise.resolve(items), seedEmails: items });
@@ -355,6 +366,12 @@ async function testSuccessWithItems(){
   assert.strictEqual(env.elements.degradedBanner.hidden, true, 'degraded banner hidden on success');
   assert(env.elements.groupContainer.innerHTML.includes('card'), 'cards rendered');
   assert(env.telemetryCalls.some(entry => entry.event === 'ai_review_load' && entry.payload && entry.payload.status === 'success'), 'telemetry includes success');
+  const stateLogs=getInfoLogs(env,'ai_review_state');
+  assert(stateLogs.some(entry=>entry.view==='success' && entry.itemCount===items.length), 'state log captures success view');
+  const bannerLog=getLatestInfo(env,'banner_decision');
+  assert(bannerLog, 'banner decision emitted');
+  assert(Array.isArray(bannerLog.active) && bannerLog.active.length===0, 'no banners active on successful load');
+  assert.strictEqual(getInfoLogs(env,'banner_conflict').length, 0, 'no conflicts logged on success');
 }
 
 async function testEmptySuccess(){
@@ -367,6 +384,10 @@ async function testEmptySuccess(){
   assert.strictEqual(env.elements.degradedBanner.hidden, true, 'degraded hidden when empty');
   assert.strictEqual(env.elements.emptyState.focusCount > 0, true, 'empty received focus');
   assert(env.telemetryCalls.some(entry => entry.payload && entry.payload.status === 'empty'), 'telemetry logs empty');
+  const bannerLog=getLatestInfo(env,'banner_decision');
+  assert(bannerLog && bannerLog.active.includes('empty'), 'empty banner recorded');
+  assert(!bannerLog.active.includes('error'), 'error banner not active on empty');
+  assert.strictEqual(getInfoLogs(env,'banner_conflict').length, 0, 'no conflicts logged on empty state');
 }
 
 async function testErrorNoCache(){
@@ -379,6 +400,10 @@ async function testErrorNoCache(){
   assert.strictEqual(env.elements.degradedBanner.hidden, true, 'degraded hidden without cache');
   assert.strictEqual(env.elements.errorState.focusCount > 0, true, 'error received focus');
   assert(env.telemetryCalls.some(entry => entry.payload && entry.payload.status === 'error'), 'telemetry logs error');
+  const bannerLog=getLatestInfo(env,'banner_decision');
+  assert(bannerLog && bannerLog.active.includes('error'), 'error banner recorded');
+  assert(!bannerLog.active.includes('degraded'), 'degraded banner not active when hard error');
+  assert.strictEqual(getInfoLogs(env,'banner_conflict').length, 0, 'no conflicts logged on error state');
 }
 
 async function testErrorWithCache(){
@@ -392,16 +417,22 @@ async function testErrorWithCache(){
   assert.strictEqual(env.elements.emptyState.hidden, true, 'empty hidden during degraded state');
   assert(env.elements.groupContainer.innerHTML.includes('card'), 'cached cards still rendered');
   assert(env.telemetryCalls.some(entry => entry.payload && entry.payload.status === 'degraded'), 'telemetry logs degraded state');
+  const bannerLog=getLatestInfo(env,'banner_decision');
+  assert(bannerLog && bannerLog.active.includes('degraded'), 'degraded banner recorded');
+  assert(!bannerLog.active.includes('error'), 'error banner not active during degraded state');
+  assert.strictEqual(getInfoLogs(env,'banner_conflict').length, 0, 'no conflicts logged on degraded state');
 }
 
 async function testMutualExclusion(){
   const emptyEnv = await mountAiReview({ loader: () => Promise.resolve([]), seedEmails: [] });
   await settle(emptyEnv);
   assert(!(emptyEnv.elements.emptyState.hidden === false && emptyEnv.elements.errorState.hidden === false), 'empty and error not both visible after empty load');
+  assert.strictEqual(getInfoLogs(emptyEnv,'banner_conflict').length, 0, 'no conflicts logged for empty state env');
 
   const errorEnv = await mountAiReview({ loader: () => Promise.reject(new Error('fail')), seedEmails: [] });
   await settle(errorEnv);
   assert(!(errorEnv.elements.emptyState.hidden === false && errorEnv.elements.errorState.hidden === false), 'empty and error not both visible after error load');
+  assert.strictEqual(getInfoLogs(errorEnv,'banner_conflict').length, 0, 'no conflicts logged for error state env');
 }
 
 (async () => {
