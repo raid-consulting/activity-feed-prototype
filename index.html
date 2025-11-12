@@ -35,7 +35,12 @@
     border:2px solid var(--line);border-radius:12px}
   .title{display:flex;align-items:center;gap:12px;font-weight:800;letter-spacing:.2px;
     font-size:clamp(18px,2.4vw,22px);color:var(--ink)}
-  .nav{display:flex;gap:10px;align-items:center}
+  .nav{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+  .user-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;
+    background:var(--btn);border:2px solid var(--line);color:var(--ink);font-weight:700;
+    white-space:nowrap}
+  .user-chip .user-chip-label{color:var(--muted);font-size:clamp(12px,1.5vw,13px);font-weight:600}
+  .user-chip .user-chip-name{font-size:clamp(13px,1.6vw,15px)}
   .link{color:var(--ink);text-decoration:none;font-weight:700;padding:8px 12px;border-radius:10px;border:2px solid var(--line);background:var(--btn);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
   .link:hover{background:var(--btn-hover)}
   .switch{display:inline-flex;align-items:center;gap:10px;margin-left:10px}
@@ -141,7 +146,18 @@
   function svgPentagon(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 6-3.4 10.5H6.4L3 8l9-6z"/></svg>'; }
   function cardChevron(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>'; }
 
-  function bannerHtml({authed=false}={}){
+  function escapeHtml(str=''){
+    const escapeMap = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    };
+    return String(str).replace(/[&<>"']/g, ch => escapeMap[ch]);
+  }
+
+  function bannerHtml({authed=false, user=''}={}){
     const navItems = [
       `<a class="link" href="index.html">Activity</a>`,
       `<a class="link" href="admin.html">Admin</a>`
@@ -149,10 +165,14 @@
     if(authed){
       navItems.push(`<button class="link" type="button" id="logoutBtn">Logout</button>`);
     }
+    const userDisplay = authed && user
+      ? `<div class="user-chip" id="currentUser"><span class="user-chip-label">Signed in as</span><span class="user-chip-name">${escapeHtml(user)}</span></div>`
+      : '';
     return `
       <div class="banner">
         <div class="title">${svgPentagon()} Activity Feed</div>
         <div class="nav">
+          ${userDisplay}
           ${navItems.join('')}
           <div class="switch"><span id="themeLabel">${document.documentElement.getAttribute('data-theme')==='light'?'Light':'Dark'}</span>
             <button class="toggle" id="themeToggle"><span class="knob"></span></button>
@@ -210,6 +230,10 @@
     };
   }
 
+  function getCurrentUser(){
+    return localStorage.getItem(AUTH_KEY) || '';
+  }
+
   function renderFeed(){
     if(!isAuthed()){ renderLogin(); return; }
     const emails = getEmails();
@@ -251,9 +275,10 @@
       </div>`;
     }).join('') || '<p class="meta">No notifications available.</p>';
 
+    const currentUser = getCurrentUser();
     document.getElementById('app').innerHTML = `
       <section class="inner">
-        ${bannerHtml({authed:true})}
+        ${bannerHtml({authed:true, user:currentUser})}
         <div class="feed-content" id="feedContent">
           <div class="stack" id="cardList">${groupMarkup}</div>
         </div>
