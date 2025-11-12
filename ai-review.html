@@ -131,6 +131,9 @@
   .empty-refresh:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
   .loading{padding:32px;border:2px solid var(--line);border-radius:12px;text-align:center;font-weight:700;color:var(--ink);background:var(--card)}
   .inline-alert{display:flex;align-items:center;gap:12px;padding:14px 18px;border-radius:12px;background:rgba(231,173,106,.14);border:2px solid var(--amber);color:var(--ink);font-weight:600}
+  .inline-alert[hidden]{display:none!important}
+  .inline-alert[data-banner-kind="cached"]{display:none}
+  .inline-alert[data-banner-kind="cached"][data-banner-visible="true"]{display:flex}
   .inline-alert__message{flex:1;min-width:0}
   .inline-alert__actions{display:flex;gap:10px}
   .inline-alert button{appearance:none;border:2px solid var(--line);background:var(--btn);color:var(--ink);padding:8px 14px;border-radius:999px;font-weight:700;cursor:pointer;min-height:38px}
@@ -190,7 +193,7 @@
       </div>
 
       <div id="reviewContent">
-        <div class="inline-alert" id="degradedBanner" hidden role="status" aria-live="polite">
+        <div class="inline-alert" id="degradedBanner" data-banner-kind="cached" hidden role="status" aria-live="polite">
           <span class="inline-alert__message" id="degradedMessage">Showing cached results while we reconnect…</span>
           <div class="inline-alert__actions">
             <button type="button" id="degradedRetry">Retry</button>
@@ -477,6 +480,11 @@
     errorMessage:'',
     lastView:VIEW_STATES.IDLE,
     pendingLoad:false,
+    ui:{
+      banner:{
+        kind:null
+      }
+    },
     loadOutcome:{
       phase:'idle',
       itemCount:0,
@@ -544,6 +552,123 @@
     logInfoEvent('banner_conflict', payload);
   }
 
+  function logCachedBanner(tag,payload){
+    try {
+      if(window && window.console && typeof window.console.info==='function'){
+        window.console.info(`[ai_review.cached] ${tag}`, payload);
+      }
+    } catch (_) {
+      /* noop */
+    }
+  }
+
+  function describeBannerNode(node,index){
+    if(!node) return `missing#${index}`;
+    const id=node.id?`#${node.id}`:'';
+    const dataKind=node.getAttribute('data-banner-kind');
+    const label=node.getAttribute('aria-label') || node.getAttribute('data-banner');
+    const tag=node.tagName?node.tagName.toLowerCase():'';
+    const parts=[
+      tag,
+      id.trim(),
+      dataKind?`[data-banner-kind="${dataKind}"]`:null,
+      label?`"${label}"`:null
+    ].filter(Boolean);
+    return parts.length?parts.join(' '):`${tag||'node'}#${index}`;
+  }
+
+  function snapshotBannerNode(node){
+    if(!node){
+      return {
+        exists:false,
+        hiddenAttr:null,
+        ariaHidden:null,
+        inert:false,
+        hasClassHidden:false,
+        computedDisplay:'n/a'
+      };
+    }
+    let computed='n/a';
+    try {
+      if(window && typeof window.getComputedStyle==='function'){
+        computed=window.getComputedStyle(node).display;
+      }
+    } catch (_) {
+      computed='n/a';
+    }
+    const inertValue=typeof node.inert==='boolean' ? node.inert : node.hasAttribute('inert');
+    return {
+      exists:true,
+      hiddenAttr:node.hasAttribute('hidden'),
+      ariaHidden:node.getAttribute('aria-hidden'),
+      inert:!!inertValue,
+      hasClassHidden:node.classList ? node.classList.contains('hidden') : false,
+      computedDisplay:computed
+    };
+  }
+
+  function setInert(node,value){
+    try {
+      if(value){
+        node.setAttribute('inert','');
+        if('inert' in node){ node.inert=true; }
+      } else {
+        node.removeAttribute('inert');
+        if('inert' in node){ node.inert=false; }
+      }
+    } catch (_) {
+      /* noop */
+    }
+  }
+
+  function applyCachedBannerVisibility({shouldShow,reason,message}){
+    const nodes=Array.from(document.querySelectorAll('[data-banner-kind="cached"]'));
+    const stateSnapshot={
+      phase:state.loadOutcome.phase,
+      itemCount:state.loadOutcome.itemCount,
+      usingCache:state.loadOutcome.usingCache,
+      networkWasOffline:state.loadOutcome.networkWasOffline,
+      retries:state.loadOutcome.retries,
+      durationMs:state.loadOutcome.durationMs
+    };
+    logCachedBanner('decision',{shouldShow,reason,state:stateSnapshot});
+    if(nodes.length>1){
+      logCachedBanner('multiple_nodes',{
+        count:nodes.length,
+        nodes:nodes.map((node,index)=>describeBannerNode(node,index))
+      });
+    }
+    const primary=nodes[0]||null;
+    const before=snapshotBannerNode(primary);
+    logCachedBanner('dom_before',before);
+    nodes.forEach(node=>{
+      if(!node) return;
+      if(shouldShow){
+        node.removeAttribute('hidden');
+        node.setAttribute('aria-hidden','false');
+        node.setAttribute('data-banner-visible','true');
+        setInert(node,false);
+        if(message && degradedMessage && node.contains(degradedMessage)){
+          degradedMessage.textContent=message;
+        }
+      } else {
+        node.setAttribute('hidden','');
+        node.setAttribute('aria-hidden','true');
+        node.removeAttribute('data-banner-visible');
+        setInert(node,true);
+      }
+    });
+    const after=snapshotBannerNode(primary);
+    logCachedBanner('dom_after',after);
+    const visibleAfter=!shouldShow && after.exists && !after.hiddenAttr && after.computedDisplay!=='none' && after.computedDisplay!=='n/a';
+    if(visibleAfter){
+      logCachedBanner('conflict',{
+        reason:'visible_when_should_hide',
+        snapshots:{before,after}
+      });
+    }
+  }
+
   function updateLoadOutcome(updates={}){
     const next={
       ...state.loadOutcome,
@@ -565,8 +690,9 @@
   function viewToPhase(view){
     switch(view){
       case VIEW_STATES.ERROR:
-      case VIEW_STATES.DEGRADED:
         return 'error';
+      case VIEW_STATES.DEGRADED:
+        return 'success';
       case VIEW_STATES.LOADING:
         return 'loading';
       case VIEW_STATES.IDLE:
@@ -723,8 +849,7 @@
     const usingCache=state.loadOutcome.usingCache;
     const networkWasOffline=state.loadOutcome.networkWasOffline;
     const isLoading=phase==='loading';
-    const shouldRenderList=(phase==='success' && state.items.length>0)
-      || (phase==='error' && usingCache && state.items.length>0);
+    const shouldRenderList=(phase==='success' && state.items.length>0);
 
     if(!isLoading){
       updateCounts(state.items);
@@ -735,28 +860,29 @@
 
     const showLoading=isLoading;
     const showEmpty=(phase==='success' && state.loadOutcome.itemCount===0);
-    const showCached=(phase==='error' && usingCache && networkWasOffline && state.items.length>0);
-    const showError=(phase==='error' && !(usingCache && networkWasOffline));
+    const showCached=(phase==='success' && usingCache && networkWasOffline && state.loadOutcome.itemCount>0);
+    const showError=(phase==='error');
     const showNoResults=shouldRenderList && state.items.length>0 && !hasVisible;
 
+    const nextBannerKind=showEmpty ? 'empty' : showCached ? 'cached' : showError ? 'error' : null;
+    state.ui.banner.kind=nextBannerKind;
+
     const bannerFlags={
-      info_empty:showEmpty,
-      warn_cached:showCached,
-      error_failed:showError
+      info_empty:nextBannerKind==='empty',
+      warn_cached:nextBannerKind==='cached',
+      error_failed:nextBannerKind==='error'
     };
     const activeBanners=Object.entries(bannerFlags)
-      .filter(([,value])=>!!value)
+      .filter(([,value])=>value)
       .map(([key])=>key);
     let chosen='none';
     let reason='no_banner';
     if(showLoading){
-      chosen='none';
       reason='loading';
-    } else if(activeBanners.length){
-      chosen=activeBanners[0];
-      if(chosen==='info_empty'){ reason='success_empty'; }
-      else if(chosen==='warn_cached'){ reason=networkWasOffline?'cache_offline':'cache_used'; }
-      else if(chosen==='error_failed'){ reason='error_final'; }
+    } else if(nextBannerKind){
+      if(nextBannerKind==='empty'){ chosen='info_empty'; reason='success_empty'; }
+      else if(nextBannerKind==='cached'){ chosen='warn_cached'; reason=networkWasOffline?'cache_offline':'cache_used'; }
+      else if(nextBannerKind==='error'){ chosen='error_failed'; reason='error_final'; }
     } else if(phase==='success' && state.loadOutcome.itemCount>0){
       reason='success_items';
     }
@@ -806,28 +932,40 @@
     }
 
     if(emptyState){
-      emptyState.hidden=!showEmpty;
-      if(showEmpty && state.lastView!==VIEW_STATES.EMPTY && typeof emptyState.focus==='function'){
+      const showEmptyBanner=nextBannerKind==='empty';
+      emptyState.hidden=!showEmptyBanner;
+      if(showEmptyBanner && state.lastView!==VIEW_STATES.EMPTY && typeof emptyState.focus==='function'){
         emptyState.focus();
       }
     }
 
     if(errorState){
-      errorState.hidden=!showError;
-      if(showError && errorMessage){
+      const showErrorBanner=nextBannerKind==='error';
+      errorState.hidden=!showErrorBanner;
+      if(showErrorBanner && errorMessage){
         errorMessage.textContent=state.errorMessage || DEFAULT_ERROR_MESSAGE;
       }
-      if(showError && state.lastView!==VIEW_STATES.ERROR && typeof errorState.focus==='function'){
+      if(showErrorBanner && state.lastView!==VIEW_STATES.ERROR && typeof errorState.focus==='function'){
         errorState.focus();
       }
     }
 
-    if(degradedBanner){
-      degradedBanner.hidden=!showCached;
-      if(showCached && degradedMessage){
-        degradedMessage.textContent=state.errorMessage || 'Showing cached results while we reconnect…';
-      }
-    }
+    const cachedVisibilityReason=(nextBannerKind==='cached')
+      ? 'usingCache+offline'
+      : !usingCache
+        ? 'usingCache_false'
+        : !networkWasOffline
+          ? 'network_online'
+          : phase!=='success'
+            ? `phase_${phase}`
+            : state.loadOutcome.itemCount<=0
+              ? 'no_items'
+              : 'suppressed';
+    applyCachedBannerVisibility({
+      shouldShow:nextBannerKind==='cached',
+      reason:cachedVisibilityReason,
+      message:state.errorMessage || 'Showing cached results while we reconnect…'
+    });
 
     if((state.view===VIEW_STATES.ERROR || state.view===VIEW_STATES.EMPTY) && (showError || showEmpty)){
       closeDetail();
@@ -959,15 +1097,17 @@
       const errorMsg=message || DEFAULT_ERROR_MESSAGE;
       state.errorMessage=errorMsg;
       let usingCache=false;
+      let phaseLabel='error';
       if(state.cachedItems.length){
         state.items=state.cachedItems.slice();
         state.view=VIEW_STATES.DEGRADED;
         usingCache=true;
+        phaseLabel='success';
       } else {
         state.items=[];
         state.view=VIEW_STATES.ERROR;
       }
-      finalize({phase:'error',usingCache,itemCount:state.items.length,errorMessage:errorMsg});
+      finalize({phase:phaseLabel,usingCache,itemCount:state.items.length,errorMessage:errorMsg});
       render();
       ensureAutoRefresh();
     };
@@ -1006,9 +1146,10 @@
     }
     if(nextPhase!==state.loadOutcome.phase){
       updates.phase=nextPhase;
-      updates.usingCache=nextPhase==='error' ? state.view===VIEW_STATES.DEGRADED : false;
-    } else if(nextPhase==='success' && state.loadOutcome.usingCache){
-      updates.usingCache=false;
+    }
+    const shouldFlagCache=state.view===VIEW_STATES.DEGRADED;
+    if(state.loadOutcome.usingCache!==shouldFlagCache){
+      updates.usingCache=shouldFlagCache;
     }
     if(Object.keys(updates).length){
       updateLoadOutcome(updates);
