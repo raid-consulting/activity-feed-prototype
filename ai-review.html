@@ -479,6 +479,60 @@
     pendingLoad:false
   };
 
+  function logInfoEvent(event,payload){
+    try {
+      if(window && window.console && typeof window.console.info==='function'){
+        window.console.info('[ai_review]', event, payload);
+      }
+    } catch (_) {
+      /* noop */
+    }
+  }
+
+  let lastStateLog='';
+  let lastBannerLog='';
+  let lastConflictLog='';
+
+  function logAiReviewState(){
+    const payload={
+      view:state.view,
+      lastView:state.lastView,
+      itemCount:state.items.length,
+      cachedCount:state.cachedItems.length,
+      filter:state.filter,
+      search:state.search,
+      detailOpen:!!state.detailId,
+      pendingLoad:state.pendingLoad
+    };
+    const fingerprint=JSON.stringify(payload);
+    if(fingerprint===lastStateLog) return;
+    lastStateLog=fingerprint;
+    logInfoEvent('ai_review_state', payload);
+  }
+
+  function logBannerDecision(payload){
+    const fingerprint=JSON.stringify(payload);
+    if(fingerprint===lastBannerLog) return;
+    lastBannerLog=fingerprint;
+    logInfoEvent('banner_decision', payload);
+  }
+
+  function logBannerConflict(active){
+    const payload={
+      view:state.view,
+      lastView:state.lastView,
+      itemCount:state.items.length,
+      cachedCount:state.cachedItems.length,
+      filter:state.filter,
+      search:state.search,
+      active
+    };
+    const fingerprint=JSON.stringify(payload);
+    if(fingerprint===lastConflictLog) return;
+    lastConflictLog=fingerprint;
+    logInfoEvent('banner_conflict', payload);
+  }
+
   const REFRESH_INTERVAL = window.AutoRefresh ? window.AutoRefresh.DEFAULT_INTERVAL : 15000;
   let autoRefreshController = null;
   let activeLoadTimer=null;
@@ -623,6 +677,8 @@
     const shouldRenderList=view===VIEW_STATES.SUCCESS || view===VIEW_STATES.DEGRADED;
     let hasVisible=false;
 
+    logAiReviewState();
+
     if(view!==VIEW_STATES.LOADING){
       updateCounts(state.items);
     }
@@ -633,8 +689,42 @@
       groupContainer.innerHTML='';
     }
 
+    const showLoading=view===VIEW_STATES.LOADING;
+    const showEmpty=view===VIEW_STATES.EMPTY;
+    const showError=view===VIEW_STATES.ERROR;
+    const showDegraded=view===VIEW_STATES.DEGRADED && hasVisible;
+    const showNoResults=shouldRenderList && state.items.length>0 && !hasVisible;
+
+    const bannerPayload={
+      view,
+      lastView:state.lastView,
+      itemCount:state.items.length,
+      cachedCount:state.cachedItems.length,
+      filter:state.filter,
+      search:state.search,
+      hasVisible,
+      banners:{
+        loading:showLoading,
+        degraded:showDegraded,
+        empty:showEmpty,
+        error:showError,
+        noResults:showNoResults
+      }
+    };
+    bannerPayload.active=Object.entries(bannerPayload.banners)
+      .filter(([,value])=>!!value)
+      .map(([key])=>key);
+    logBannerDecision(bannerPayload);
+
+    const conflicting=bannerPayload.active.filter(key=>key==='degraded'||key==='empty'||key==='error');
+    if(conflicting.length>1){
+      logBannerConflict(conflicting);
+    } else if(conflicting.length===0){
+      lastConflictLog='';
+    }
+
     if(loadingState){
-      loadingState.hidden=view!==VIEW_STATES.LOADING;
+      loadingState.hidden=!showLoading;
     }
 
     if(groupContainer){
@@ -642,12 +732,10 @@
     }
 
     if(noResultsNotice){
-      const showNoResults=shouldRenderList && state.items.length>0 && !hasVisible;
       noResultsNotice.hidden=!showNoResults;
     }
 
     if(emptyState){
-      const showEmpty=view===VIEW_STATES.EMPTY;
       emptyState.hidden=!showEmpty;
       if(showEmpty && state.lastView!==VIEW_STATES.EMPTY && typeof emptyState.focus==='function'){
         emptyState.focus();
@@ -655,7 +743,6 @@
     }
 
     if(errorState){
-      const showError=view===VIEW_STATES.ERROR;
       errorState.hidden=!showError;
       if(showError && errorMessage){
         errorMessage.textContent=state.errorMessage || DEFAULT_ERROR_MESSAGE;
@@ -666,7 +753,6 @@
     }
 
     if(degradedBanner){
-      const showDegraded=view===VIEW_STATES.DEGRADED;
       degradedBanner.hidden=!showDegraded;
       if(showDegraded && degradedMessage){
         degradedMessage.textContent=state.errorMessage || 'Showing cached results while we reconnect…';
