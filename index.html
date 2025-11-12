@@ -120,10 +120,12 @@
 <body>
   <main class="frame" id="app"></main>
 
+<script src="refresh-utils.js"></script>
 <script src="ai-classifier.js"></script>
 <script>
   const DB_KEY = 'faux-emails';
   const AUTH_KEY = 'faux-auth';
+  const REFRESH_INTERVAL = window.AutoRefresh ? window.AutoRefresh.DEFAULT_INTERVAL : 15000;
 
   function seedDB(){
     if(localStorage.getItem(DB_KEY)) return;
@@ -199,6 +201,15 @@
   })();
   seedDB();
 
+  let feedAutoRefresh = null;
+
+  function disposeAutoRefresh(){
+    if(feedAutoRefresh){
+      feedAutoRefresh.dispose();
+      feedAutoRefresh = null;
+    }
+  }
+
   function svgPentagon(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 6-3.4 10.5H6.4L3 8l9-6z"/></svg>'; }
   function cardChevron(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>'; }
 
@@ -252,11 +263,7 @@
     if(logout){
       logout.addEventListener('click', () => {
         localStorage.removeItem(AUTH_KEY);
-        if(typeof renderLogin === 'function'){
-          renderLogin();
-        } else {
-          window.location.href = 'index.html';
-        }
+        renderLogin();
       });
     }
   }
@@ -270,6 +277,7 @@
   }
 
   function renderLogin(){
+    disposeAutoRefresh();
     renderFrame({
       authed:false,
       content:`
@@ -305,9 +313,10 @@
     return localStorage.getItem(AUTH_KEY) || '';
   }
 
+
   function renderFeed(){
     if(!isAuthed()){ renderLogin(); return; }
-    const emails = getEmails();
+    disposeAutoRefresh();
     const statusInfo = {
       'urgent': {badge:'Urgent', badgeClass:'badge-urgent', accent:'accent-crimson'},
       'manual': {badge:'Manual review', badgeClass:'', accent:'accent-red'},
@@ -323,28 +332,6 @@
     ];
     const truncate = (text)=> text.length>160 ? text.slice(0,157)+'…' : text;
     const formatTime = (ts)=> new Date(ts).toLocaleString();
-    const groupMarkup = groups.map(group => {
-      const items = emails.filter(e => group.statuses.includes(e.status)).sort((a,b)=>b.received-a.received);
-      if(!items.length) return '';
-      const cards = items.map(e => {
-        const info = statusInfo[e.status] || statusInfo.info;
-        return `<button class="card ${info.accent} ${e.status==='urgent'?'is-urgent':''}" data-email="${e.id}">
-          <div class="card-content">
-            <div class="card-header">
-              <span class="badge ${info.badgeClass}">${info.badge}</span>
-              <span class="timestamp">${formatTime(e.received)}</span>
-            </div>
-            <div class="title-text">${e.subject}</div>
-            <p class="description">${truncate(e.body)}</p>
-          </div>
-          <span class="chev">${cardChevron()}</span>
-        </button>`;
-      }).join('');
-      return `<div class="group">
-        <div class="group-title">${group.title}</div>
-        <div class="group-cards">${cards}</div>
-      </div>`;
-    }).join('') || '<p class="meta">No notifications available.</p>';
 
     const currentUser = getCurrentUser();
     renderFrame({
@@ -357,7 +344,7 @@
             <p class="section-subtitle">Monitor inbox triage and recent automation updates.</p>
           </header>
           <div class="feed-content" id="feedContent">
-            <div class="stack" id="cardList">${groupMarkup}</div>
+            <div class="stack" id="cardList"></div>
           </div>
           <div class="detail-view" id="detailView" aria-hidden="true">
             <div class="detail-head">
@@ -389,8 +376,36 @@
     const detailMeta = document.getElementById('detailMeta');
     const detailBody = document.getElementById('detailBody');
     const detailCrumb = document.getElementById('detailCrumb');
+    const cardList = document.getElementById('cardList');
 
-    const showDetail = (email) => {
+    const state = { emails:[], detailId:null };
+
+    function buildGroups(emails){
+      return groups.map(group => {
+        const items = emails.filter(e => group.statuses.includes(e.status)).sort((a,b)=>b.received-a.received);
+        if(!items.length) return '';
+        const cards = items.map(e => {
+          const info = statusInfo[e.status] || statusInfo.info;
+          return `<button class="card ${info.accent} ${e.status==='urgent'?'is-urgent':''}" data-email="${e.id}">
+            <div class="card-content">
+              <div class="card-header">
+                <span class="badge ${info.badgeClass}">${info.badge}</span>
+                <span class="timestamp">${formatTime(e.received)}</span>
+              </div>
+              <div class="title-text">${e.subject}</div>
+              <p class="description">${truncate(e.body)}</p>
+            </div>
+            <span class="chev">${cardChevron()}</span>
+          </button>`;
+        }).join('');
+        return `<div class="group">
+          <div class="group-title">${group.title}</div>
+          <div class="group-cards">${cards}</div>
+        </div>`;
+      }).join('');
+    }
+
+    const showDetail = (email,{scrollIntoView=true}={}) => {
       const ai = email.ai || {};
       const confidence = typeof ai.confidence === 'number' ? Math.round(ai.confidence * 100) : null;
       const aiSummary = ai.category
@@ -402,29 +417,61 @@
       detailCrumb.textContent = email.subject;
       feedContent.hidden = true;
       detailView.setAttribute('aria-hidden', 'false');
-      detailView.scrollIntoView({behavior:'smooth', block:'start'});
+      state.detailId = email.id;
+      if(scrollIntoView){
+        detailView.scrollIntoView({behavior:'smooth', block:'start'});
+      }
     };
 
     const hideDetail = () => {
       feedContent.hidden = false;
       detailView.setAttribute('aria-hidden', 'true');
+      state.detailId = null;
     };
 
     document.getElementById('detailBack').addEventListener('click', hideDetail);
     document.getElementById('detailBackBtn').addEventListener('click', hideDetail);
 
-    const emailsById = Object.fromEntries(emails.map(e => [e.id, e]));
-    document.querySelectorAll('.card[data-email]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-email');
-        const email = emailsById[id];
-        if(email){
-          showDetail(email);
-        }
+    function attachCardHandlers(){
+      cardList.querySelectorAll('.card[data-email]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-email');
+          const email = state.emails.find(e => e.id === id);
+          if(email){
+            showDetail(email);
+          }
+        });
       });
-    });
-  }
+    }
 
+    function updateFeed({skipScroll=false}={}){
+      const emails = getEmails();
+      state.emails = emails.slice();
+      const markup = buildGroups(emails);
+      cardList.innerHTML = markup || '<p class="meta">No notifications available.</p>';
+      attachCardHandlers();
+      if(state.detailId){
+        const current = state.emails.find(e => e.id === state.detailId);
+        if(current){
+          showDetail(current,{scrollIntoView:!skipScroll});
+        } else {
+          hideDetail();
+        }
+      }
+    }
+
+    updateFeed();
+
+    if(window.AutoRefresh){
+      feedAutoRefresh = window.AutoRefresh.createAutoRefresh({
+        refresh: () => updateFeed({skipScroll:true}),
+        intervalMs: REFRESH_INTERVAL,
+        immediate: false,
+        autoStart: false
+      });
+      feedAutoRefresh.start();
+    }
+  }
   // Boot
   if(isAuthed()){ renderFeed(); } else { renderLogin(); }
 </script>
