@@ -5,16 +5,29 @@ const vm = require('vm');
 function verifyInlineScript(fileName) {
   const htmlPath = path.join(__dirname, '..', fileName);
   const html = fs.readFileSync(htmlPath, 'utf8');
-  const match = html.match(/<script>([\s\S]*?)<\/script>/);
-  if (!match) {
-    throw new Error(`Could not find inline script in ${fileName}`);
+  const pattern = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi;
+  let match;
+  let count = 0;
+  let fileFailed = false;
+  while ((match = pattern.exec(html))) {
+    const attrs = match[1] || '';
+    if (/\bsrc\s*=/.test(attrs)) {
+      continue;
+    }
+    count += 1;
+    const scriptContent = match[2];
+    try {
+      new vm.Script(scriptContent, { filename: `${fileName}-inline-script-${count}.js` });
+    } catch (err) {
+      console.error(`${fileName} inline script #${count} failed to compile:`, err);
+      process.exitCode = 1;
+      fileFailed = true;
+    }
   }
-  try {
-    new vm.Script(match[1], { filename: `${fileName}-inline-script.js` });
-    console.log(`${fileName} inline script compiles without syntax errors.`);
-  } catch (err) {
-    console.error(`${fileName} inline script failed to compile:`, err);
-    process.exitCode = 1;
+  if (count === 0) {
+    console.log(`${fileName} has no inline scripts to verify.`);
+  } else if (!fileFailed) {
+    console.log(`${fileName} inline scripts (${count}) compile without syntax errors.`);
   }
 }
 
