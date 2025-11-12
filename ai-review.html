@@ -190,6 +190,7 @@
     </section>
   </main>
 
+<script src="refresh-utils.js"></script>
 <script src="ai-classifier.js"></script>
 <script>
   const DB_KEY='faux-emails', AUTH_KEY='faux-auth';
@@ -336,6 +337,9 @@
     detailId:null
   };
 
+  const REFRESH_INTERVAL = window.AutoRefresh ? window.AutoRefresh.DEFAULT_INTERVAL : 15000;
+  let autoRefreshController = null;
+
   const groupContainer=document.getElementById('groupContainer');
   const loadingState=document.getElementById('loadingState');
   const emptyState=document.getElementById('emptyState');
@@ -462,15 +466,70 @@
     state.items=Array.isArray(data) ? data.slice().sort((a,b)=>b.received-a.received) : [];
   }
 
+  function renderDetail(email,{scrollIntoView=true}={}){
+    if(!email){
+      closeDetail();
+      return;
+    }
+    const category=getCategory(email);
+    const info=CATEGORY_INFO[category];
+    const ai=email.ai||{};
+    const confidence=formatConfidence(ai) || '–';
+    const assessed=ai.assessed_at ? new Date(ai.assessed_at).toLocaleString() : '–';
+    const assessor=ai.assessor_version || 'unknown';
+    const blockers=formatList(ai.blockers);
+    const permissions=formatList(ai.required_permissions);
+    const context=formatList(ai.required_context);
+    detailTitle.textContent=email.subject;
+    detailMeta.innerHTML=`<strong>From:</strong> ${escapeHtml(email.from)} • <strong>Received:</strong> ${formatTime(email.received)} • <strong>Status:</strong> ${escapeHtml(email.status)} • <strong>AI:</strong> ${category.toUpperCase()} (${confidence} confidence)`;
+    detailBody.textContent=email.body;
+    detailSynopsis.textContent=ai.notes || email.aiSynopsis || 'Metadata pending for this message.';
+    detailAiMeta.textContent=`Assessed ${assessed} • Assessor: ${escapeHtml(assessor)} • Confidence: ${confidence}`;
+    detailAiRequirements.textContent=`Blockers: ${escapeHtml(blockers)} • Permissions: ${escapeHtml(permissions)} • Context: ${escapeHtml(context)}`;
+    detailTag.textContent=info.label;
+    detailTag.className=`detail-tag ${category}`;
+    detailCrumb.textContent=email.subject;
+    state.detailId=email.id;
+    reviewContent.hidden=true;
+    detailView.setAttribute('aria-hidden','false');
+    if(scrollIntoView){
+      detailView.scrollIntoView({behavior:'smooth',block:'start'});
+    }
+  }
+
   function load(){
     loadingState.hidden=false;
     groupContainer.hidden=true;
     emptyState.hidden=true;
     setTimeout(()=>{
-      refreshItems();
       state.loading=false;
-      render();
+      syncAndRender();
+      ensureAutoRefresh();
     },160);
+  }
+
+  function syncAndRender({skipScroll=false}={}){
+    refreshItems();
+    render();
+    if(state.detailId){
+      const email=state.items.find(item=>item.id===state.detailId);
+      if(email){
+        renderDetail(email,{scrollIntoView:!skipScroll});
+      } else {
+        closeDetail();
+      }
+    }
+  }
+
+  function ensureAutoRefresh(){
+    if(!window.AutoRefresh || autoRefreshController) return;
+    autoRefreshController=window.AutoRefresh.createAutoRefresh({
+      refresh:()=>syncAndRender({skipScroll:true}),
+      intervalMs:REFRESH_INTERVAL,
+      immediate:false,
+      autoStart:false
+    });
+    autoRefreshController.start();
   }
 
   function setFilter(value){
@@ -494,31 +553,13 @@
     renderList();
   });
 
-  function openDetail(id){
+  function openDetail(id, options={}){
     const email=state.items.find(item=>item.id===id);
-    if(!email) return;
-    const category=getCategory(email);
-    const info=CATEGORY_INFO[category];
-    const ai=email.ai||{};
-    const confidence=formatConfidence(ai) || '–';
-    const assessed=ai.assessed_at ? new Date(ai.assessed_at).toLocaleString() : '–';
-    const assessor=ai.assessor_version || 'unknown';
-    const blockers=formatList(ai.blockers);
-    const permissions=formatList(ai.required_permissions);
-    const context=formatList(ai.required_context);
-    detailTitle.textContent=email.subject;
-    detailMeta.innerHTML=`<strong>From:</strong> ${escapeHtml(email.from)} • <strong>Received:</strong> ${formatTime(email.received)} • <strong>Status:</strong> ${escapeHtml(email.status)} • <strong>AI:</strong> ${category.toUpperCase()} (${confidence} confidence)`;
-    detailBody.textContent=email.body;
-    detailSynopsis.textContent=ai.notes || email.aiSynopsis || 'Metadata pending for this message.';
-    detailAiMeta.textContent=`Assessed ${assessed} • Assessor: ${escapeHtml(assessor)} • Confidence: ${confidence}`;
-    detailAiRequirements.textContent=`Blockers: ${escapeHtml(blockers)} • Permissions: ${escapeHtml(permissions)} • Context: ${escapeHtml(context)}`;
-    detailTag.textContent=info.label;
-    detailTag.className=`detail-tag ${category}`;
-    detailCrumb.textContent=email.subject;
-    state.detailId=id;
-    reviewContent.hidden=true;
-    detailView.setAttribute('aria-hidden','false');
-    detailView.scrollIntoView({behavior:'smooth',block:'start'});
+    if(!email){
+      closeDetail();
+      return;
+    }
+    renderDetail(email,options);
   }
 
   function closeDetail(){
@@ -535,9 +576,7 @@
       if(!state.detailId) return;
       const updated=reassessEmail(state.detailId);
       if(updated){
-        refreshItems();
-        render();
-        openDetail(state.detailId);
+        syncAndRender({skipScroll:true});
       }
     });
   }
