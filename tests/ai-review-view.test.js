@@ -3,43 +3,82 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
+async function runTest(name, fn){
+  try {
+    await fn();
+    console.log(`✓ ${name}`);
+  } catch (err){
+    console.error(`✗ ${name}`);
+    console.error(err);
+    process.exitCode = 1;
+  }
+}
+
+function createTimer(){
+  let id = 0;
+  const tasks = new Map();
+  return {
+    set(fn, ms){
+      const handle = ++id;
+      tasks.set(handle, { fn, ms, cleared:false });
+      return handle;
+    },
+    clear(handle){
+      const task = tasks.get(handle);
+      if(task){
+        task.cleared = true;
+      }
+    },
+    run(handle){
+      const task = tasks.get(handle);
+      if(task && !task.cleared){
+        task.cleared = true;
+        task.fn();
+      }
+    },
+    runAll(){
+      Array.from(tasks.keys()).forEach(handle => this.run(handle));
+    }
+  };
+}
+
 function createElement(id){
-  const element = {
+  let _innerHTML = '';
+  return {
     id,
     hidden: false,
     className: '',
     textContent: '',
-    innerHTML: '',
-    _innerHTML: '',
     attributes: {},
     listeners: {},
-    set innerHTML(value){
-      this._innerHTML = value;
-    },
-    get innerHTML(){
-      return this._innerHTML;
-    },
-    setAttribute(name, value){
-      this.attributes[name] = value;
-    },
-    getAttribute(name){
-      return this.attributes[name];
-    },
-    addEventListener(event, handler){
-      this.listeners[event] = handler;
-    },
-    removeEventListener(event){
-      delete this.listeners[event];
-    },
+    focusCount: 0,
+    _innerHTML,
+    set innerHTML(value){ _innerHTML = value; },
+    get innerHTML(){ return _innerHTML; },
+    setAttribute(name, value){ this.attributes[name] = value; },
+    getAttribute(name){ return this.attributes[name]; },
+    addEventListener(event, handler){ this.listeners[event] = handler; },
+    removeEventListener(event){ delete this.listeners[event]; },
     querySelector(){ return null; },
     querySelectorAll(){ return []; },
     scrollIntoView(){},
-    focus(){},
+    focus(){ this.focusCount++; },
   };
-  return element;
 }
 
-async function runAiReviewMount(){
+function createSampleEmail(id, overrides={}){
+  return {
+    id,
+    from: `${id}@example.com`,
+    subject: `Subject ${id}`,
+    body: `Body ${id}`,
+    status: 'open',
+    received: Date.now(),
+    ...overrides,
+  };
+}
+
+async function mountAiReview({ loader, seedEmails, cachedEmails }={}){
   const logs = { error: [], warn: [] };
   const consoleStub = {
     log: () => {},
@@ -48,6 +87,8 @@ async function runAiReviewMount(){
     warn: (...args) => { logs.warn.push(args); },
     error: (...args) => { logs.error.push(args); },
   };
+
+  const timers = createTimer();
 
   const elements = {};
   const registerElement = (id, element) => {
@@ -84,7 +125,7 @@ async function runAiReviewMount(){
     const results = [];
     const regex = /data-id="([^"]+)"/g;
     let match;
-    while ((match = regex.exec(groupContainer._innerHTML))) {
+    while ((match = regex.exec(groupContainer.innerHTML || ''))){
       const btn = createElement();
       btn.getAttribute = (name) => name === 'data-id' ? match[1] : null;
       btn.addEventListener = () => {};
@@ -100,6 +141,10 @@ async function runAiReviewMount(){
   const errorMessageNode = createElement();
   errorState.querySelector = (selector) => selector === 'p' ? errorMessageNode : null;
   const errorRetry = registerElement('errorRetry', createElement('errorRetry'));
+  const degradedBanner = registerElement('degradedBanner', createElement('degradedBanner'));
+  const degradedMessage = registerElement('degradedMessage', createElement('degradedMessage'));
+  const degradedRetry = registerElement('degradedRetry', createElement('degradedRetry'));
+  const noResultsNotice = registerElement('noResultsNotice', createElement('noResultsNotice'));
   const reviewContent = registerElement('reviewContent', createElement('reviewContent'));
   const searchInput = registerElement('searchInput', createElement('searchInput'));
   searchInput.value = '';
@@ -155,6 +200,13 @@ async function runAiReviewMount(){
     removeItem(key){ storage.delete(key); }
   };
   localStorage.setItem('faux-auth', 'tester@example.com');
+  if(Array.isArray(seedEmails)){
+    localStorage.setItem('faux-emails', JSON.stringify(seedEmails));
+  } else if(Array.isArray(cachedEmails)){
+    localStorage.setItem('faux-emails', JSON.stringify(cachedEmails));
+  } else {
+    localStorage.setItem('faux-emails', '[]');
+  }
 
   const location = {
     pathname: '/ai-review.html',
@@ -201,10 +253,11 @@ async function runAiReviewMount(){
   const AutoRefresh = {
     DEFAULT_INTERVAL: 15000,
     createAutoRefresh(options){
+      const immediate = options && options.immediate !== false;
       return {
         intervalMs: options.intervalMs,
         start(){
-          if (typeof options.refresh === 'function') {
+          if(immediate && typeof options.refresh === 'function'){
             options.refresh();
           }
         },
@@ -220,8 +273,8 @@ async function runAiReviewMount(){
     localStorage,
     location,
     performance,
-    setTimeout,
-    clearTimeout,
+    setTimeout: (fn, ms) => timers.set(fn, ms),
+    clearTimeout: handle => timers.clear(handle),
     Date,
     Array,
     Promise,
@@ -242,16 +295,21 @@ async function runAiReviewMount(){
   context.window.telemetry = { log(event, payload){ telemetryCalls.push({ event, payload }); } };
   context.window.AutoRefresh = AutoRefresh;
   context.window.AIClassifier = AIClassifier;
-
   context.window.AICategory = undefined;
   context.window.navigator = { userAgent: 'node' };
+
+  const loadEmails = Array.isArray(cachedEmails) ? cachedEmails : Array.isArray(seedEmails) ? seedEmails : [];
+  const fetchImpl = typeof loader === 'function'
+    ? loader
+    : () => Promise.resolve(loadEmails);
+  context.window.aiReviewDataSource = { fetch: fetchImpl };
 
   const scriptPath = path.join(__dirname, '..', 'ai-review.html');
   const html = fs.readFileSync(scriptPath, 'utf8');
   const pattern = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi;
   const scripts = [];
   let match;
-  while ((match = pattern.exec(html))) {
+  while ((match = pattern.exec(html))){
     const attrs = match[1] || '';
     if (/\bsrc\s*=/.test(attrs)) continue;
     scripts.push(match[2]);
@@ -263,25 +321,93 @@ async function runAiReviewMount(){
     script.runInContext(vmContext);
   });
 
-  await new Promise(resolve => setImmediate(resolve));
+  async function flush(){
+    await new Promise(resolve => setImmediate(resolve));
+  }
 
-  assert.strictEqual(logs.error.length, 0, 'console.error should not be called');
-  assert.strictEqual(logs.warn.length, 0, 'console.warn should not be called');
-  assert.strictEqual(loadingState.hidden, true, 'loading state should be hidden after load');
-  assert.strictEqual(groupContainer.hidden, false, 'group container should be visible');
-  assert.strictEqual(errorState.hidden, true, 'error state should stay hidden on success');
-  assert.strictEqual(emptyState.hidden, true, 'empty state should stay hidden when items exist');
-  assert(groupContainer._innerHTML.includes('card'), 'cards should be rendered');
-  assert(telemetryCalls.some(entry => entry.event === 'ai_review_load' && entry.payload && entry.payload.status === 'success'), 'load telemetry should include success');
+  return {
+    elements,
+    errorMessageNode,
+    telemetryCalls,
+    timers,
+    logs,
+    flush,
+    context,
+  };
+}
+
+async function settle(env, cycles=3){
+  for(let i=0;i<cycles;i++){
+    await env.flush();
+  }
+}
+
+async function testSuccessWithItems(){
+  const items = [createSampleEmail('a1'), createSampleEmail('a2')];
+  const env = await mountAiReview({ loader: () => Promise.resolve(items), seedEmails: items });
+  await settle(env);
+
+  assert.strictEqual(env.logs.error.length, 0, 'no console errors');
+  assert.strictEqual(env.elements.loadingState.hidden, true, 'loading hidden after success');
+  assert.strictEqual(env.elements.groupContainer.hidden, false, 'group container visible');
+  assert.strictEqual(env.elements.emptyState.hidden, true, 'empty hidden on success');
+  assert.strictEqual(env.elements.errorState.hidden, true, 'error hidden on success');
+  assert.strictEqual(env.elements.degradedBanner.hidden, true, 'degraded banner hidden on success');
+  assert(env.elements.groupContainer.innerHTML.includes('card'), 'cards rendered');
+  assert(env.telemetryCalls.some(entry => entry.event === 'ai_review_load' && entry.payload && entry.payload.status === 'success'), 'telemetry includes success');
+}
+
+async function testEmptySuccess(){
+  const env = await mountAiReview({ loader: () => Promise.resolve([]), seedEmails: [] });
+  await settle(env);
+
+  assert.strictEqual(env.elements.groupContainer.hidden, true, 'group hidden when empty');
+  assert.strictEqual(env.elements.emptyState.hidden, false, 'empty visible');
+  assert.strictEqual(env.elements.errorState.hidden, true, 'error hidden when empty');
+  assert.strictEqual(env.elements.degradedBanner.hidden, true, 'degraded hidden when empty');
+  assert.strictEqual(env.elements.emptyState.focusCount > 0, true, 'empty received focus');
+  assert(env.telemetryCalls.some(entry => entry.payload && entry.payload.status === 'empty'), 'telemetry logs empty');
+}
+
+async function testErrorNoCache(){
+  const env = await mountAiReview({ loader: () => Promise.reject(new Error('boom')), seedEmails: [] });
+  await settle(env);
+
+  assert.strictEqual(env.elements.groupContainer.hidden, true, 'group hidden on error');
+  assert.strictEqual(env.elements.emptyState.hidden, true, 'empty hidden on error');
+  assert.strictEqual(env.elements.errorState.hidden, false, 'error visible');
+  assert.strictEqual(env.elements.degradedBanner.hidden, true, 'degraded hidden without cache');
+  assert.strictEqual(env.elements.errorState.focusCount > 0, true, 'error received focus');
+  assert(env.telemetryCalls.some(entry => entry.payload && entry.payload.status === 'error'), 'telemetry logs error');
+}
+
+async function testErrorWithCache(){
+  const cachedItems = [createSampleEmail('c1'), createSampleEmail('c2')];
+  const env = await mountAiReview({ loader: () => Promise.reject(new Error('network down')), seedEmails: cachedItems });
+  await settle(env);
+
+  assert.strictEqual(env.elements.groupContainer.hidden, false, 'group visible with cache');
+  assert.strictEqual(env.elements.degradedBanner.hidden, false, 'degraded banner visible');
+  assert.strictEqual(env.elements.errorState.hidden, true, 'error hidden during degraded state');
+  assert.strictEqual(env.elements.emptyState.hidden, true, 'empty hidden during degraded state');
+  assert(env.elements.groupContainer.innerHTML.includes('card'), 'cached cards still rendered');
+  assert(env.telemetryCalls.some(entry => entry.payload && entry.payload.status === 'degraded'), 'telemetry logs degraded state');
+}
+
+async function testMutualExclusion(){
+  const emptyEnv = await mountAiReview({ loader: () => Promise.resolve([]), seedEmails: [] });
+  await settle(emptyEnv);
+  assert(!(emptyEnv.elements.emptyState.hidden === false && emptyEnv.elements.errorState.hidden === false), 'empty and error not both visible after empty load');
+
+  const errorEnv = await mountAiReview({ loader: () => Promise.reject(new Error('fail')), seedEmails: [] });
+  await settle(errorEnv);
+  assert(!(errorEnv.elements.emptyState.hidden === false && errorEnv.elements.errorState.hidden === false), 'empty and error not both visible after error load');
 }
 
 (async () => {
-  try {
-    await runAiReviewMount();
-    console.log('✓ AI Review view renders without console errors');
-  } catch (err) {
-    console.error('✗ AI Review view renders without console errors');
-    console.error(err);
-    process.exitCode = 1;
-  }
+  await runTest('success with items hides global states', testSuccessWithItems);
+  await runTest('empty success shows only empty state', testEmptySuccess);
+  await runTest('error without cache renders only error', testErrorNoCache);
+  await runTest('error with cache falls back to degraded view', testErrorWithCache);
+  await runTest('empty and error states are mutually exclusive', testMutualExclusion);
 })();
