@@ -121,7 +121,12 @@
   .badge{display:inline-flex;align-items:center;gap:6px;font-size:clamp(12px,1.5vw,13px);font-weight:700;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.08);color:var(--ink);border:1px solid var(--line)}
   .timestamp{margin-left:auto;color:var(--muted);font-size:clamp(12px,1.5vw,13px)}
 
-  .empty{padding:32px;border:2px dashed var(--line);border-radius:12px;text-align:center;color:var(--muted);background:var(--card)}
+  .empty{padding:32px;border:2px dashed var(--line);border-radius:12px;text-align:center;color:var(--muted);background:var(--card);display:grid;gap:12px;justify-items:center}
+  .error{padding:32px;border:2px dashed var(--red);border-radius:12px;text-align:center;color:var(--ink);background:rgba(234,124,118,.1);display:grid;gap:12px;justify-items:center}
+  .error p{margin:0;font-weight:700}
+  .empty-refresh{appearance:none;border:2px solid var(--line);background:var(--btn);color:var(--ink);padding:10px 16px;border-radius:999px;font-weight:700;cursor:pointer}
+  .empty-refresh:hover{background:var(--btn-hover)}
+  .empty-refresh:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
   .loading{padding:32px;border:2px solid var(--line);border-radius:12px;text-align:center;font-weight:700;color:var(--ink);background:var(--card)}
 
   .detail-view{display:none;grid-template-columns:1fr;gap:16px}
@@ -179,7 +184,14 @@
       <div id="reviewContent">
         <div class="loading" id="loadingState" role="status">Loading review signals…</div>
         <div class="stack" id="groupContainer" hidden></div>
-        <div class="empty" id="emptyState" hidden>No AI review items match your filters.</div>
+        <div class="empty" id="emptyState" hidden>
+          <p>No items to review yet.</p>
+          <button class="empty-refresh" type="button" id="emptyRefresh">Refresh now</button>
+        </div>
+        <div class="error" id="errorState" hidden>
+          <p>We hit a snag loading review signals.</p>
+          <button class="empty-refresh" type="button" id="errorRetry">Try again</button>
+        </div>
       </div>
 
       <div class="detail-view" id="detailView" aria-hidden="true">
@@ -217,6 +229,17 @@
 <script src="ai-category-constants.js"></script>
 <script>
   const DB_KEY='faux-emails', AUTH_KEY='faux-auth';
+  const LOAD_TIMEOUT_MS=10000;
+
+  const telemetry=(window.telemetry && typeof window.telemetry.log==='function')
+    ? window.telemetry
+    : {
+        log(event,payload){
+          if(window && window.console && typeof window.console.log==='function'){
+            window.console.log(`[telemetry] ${event}`, payload);
+          }
+        }
+      };
 
   function svgPentagon(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 6-3.4 10.5H6.4L3 8l9-6z"/></svg>'; }
   function escapeHtml(str=''){ const map={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}; return String(str).replace(/[&<>"']/g,ch=>map[ch]); }
@@ -424,15 +447,18 @@
     filter:'all',
     search:'',
     loading:true,
-    detailId:null
+    detailId:null,
+    error:null
   };
 
   const REFRESH_INTERVAL = window.AutoRefresh ? window.AutoRefresh.DEFAULT_INTERVAL : 15000;
   let autoRefreshController = null;
+  let activeLoadTimer=null;
 
   const groupContainer=document.getElementById('groupContainer');
   const loadingState=document.getElementById('loadingState');
   const emptyState=document.getElementById('emptyState');
+  const errorState=document.getElementById('errorState');
   const reviewContent=document.getElementById('reviewContent');
   const filterButtons=Array.from(document.querySelectorAll('[data-filter]'));
   const searchInput=document.getElementById('searchInput');
@@ -446,6 +472,9 @@
   const detailAiMeta=document.getElementById('detailAiMeta');
   const detailAiRequirements=document.getElementById('detailAiRequirements');
   const detailReassess=document.getElementById('detailReassess');
+  const emptyRefresh=document.getElementById('emptyRefresh');
+  const errorRetry=document.getElementById('errorRetry');
+  const errorMessage=errorState?errorState.querySelector('p'):null;
 
   function getCategory(item){
     const raw = item && item.ai ? item.ai.category : null;
@@ -488,9 +517,20 @@
       loadingState.hidden=false;
       groupContainer.hidden=true;
       emptyState.hidden=true;
+      if(errorState){ errorState.hidden=true; }
       return;
     }
     loadingState.hidden=true;
+    if(state.error){
+      groupContainer.hidden=true;
+      emptyState.hidden=true;
+      if(errorState){
+        if(errorMessage){ errorMessage.textContent=state.error; }
+        errorState.hidden=false;
+      }
+      return;
+    }
+    if(errorState){ errorState.hidden=true; }
     const filtered=state.items.filter(item=>{
       const category=getCategory(item);
       if(state.filter!=='all' && category!==state.filter) return false;
@@ -523,11 +563,11 @@
           if(item.ai && item.ai.assessor_version === 'manual-override'){
             metaParts.push('Manual override');
           }
-          return `<button class="card ${accent}" data-id="${item.id}">
           const itemCategory=getCategory(item);
           const stripe=AICategory.getCategoryPresentation(itemCategory);
+          const stripeClass=stripe.stripeClass || `card-stripe-${itemCategory}`;
           return `<button class="card" data-id="${item.id}">
-            <span class="card-stripe ${stripe.stripeClass}" aria-label="${escapeHtml(stripe.title)}"></span>
+            <span class="card-stripe ${stripeClass}" aria-label="${escapeHtml(stripe.title)}"></span>
             <div class="card-content">
               <div class="card-header">
                 <div class="card-category">
@@ -555,7 +595,9 @@
   }
 
   function render(){
-    updateCounts(state.items);
+    if(!state.loading && !state.error){
+      updateCounts(state.items);
+    }
     renderList();
   }
 
@@ -599,19 +641,74 @@
   }
 
   function load(){
-    loadingState.hidden=false;
-    groupContainer.hidden=true;
-    emptyState.hidden=true;
-    setTimeout(()=>{
+    state.loading=true;
+    state.error=null;
+    renderList();
+    const start=typeof performance!=='undefined' && performance.now ? performance.now() : Date.now();
+    if(activeLoadTimer){
+      clearTimeout(activeLoadTimer);
+      activeLoadTimer=null;
+    }
+    let settled=false;
+    const finish=(status,details={})=>{
+      const end=typeof performance!=='undefined' && performance.now ? performance.now() : Date.now();
+      const duration=Math.round(end-start);
+      try {
+        telemetry.log('ai_review_load',{status,durationMs:duration,...details});
+      } catch (err) {
+        /* ignore telemetry errors */
+      }
+    };
+    const handleSuccess=()=>{
+      if(settled) return;
+      settled=true;
+      if(activeLoadTimer){
+        clearTimeout(activeLoadTimer);
+        activeLoadTimer=null;
+      }
       state.loading=false;
+      finish('success',{itemCount:state.items.length});
       syncAndRender();
       ensureAutoRefresh();
-    },160);
+    };
+    const handleError=(status,message)=>{
+      if(settled) return;
+      settled=true;
+      if(activeLoadTimer){
+        clearTimeout(activeLoadTimer);
+        activeLoadTimer=null;
+      }
+      state.loading=false;
+      state.error=message;
+      finish(status,{message});
+      render();
+    };
+    Promise.resolve()
+      .then(()=>{
+        refreshItems();
+      })
+      .then(handleSuccess)
+      .catch(err=>{
+        const message=err && err.message ? err.message : 'We hit a snag loading review signals.';
+        handleError('error',message);
+      });
+    activeLoadTimer=setTimeout(()=>{
+      handleError('timeout','We hit a snag loading review signals.');
+    },LOAD_TIMEOUT_MS);
   }
 
   function syncAndRender({skipScroll=false}={}){
-    refreshItems();
+    state.loading=false;
+    try {
+      refreshItems();
+      state.error=null;
+    } catch (err){
+      state.error=err && err.message ? err.message : 'We hit a snag loading review signals.';
+    }
     render();
+    if(state.error){
+      return;
+    }
     if(state.detailId){
       const email=state.items.find(item=>item.id===state.detailId);
       if(email){
@@ -671,6 +768,13 @@
 
   document.getElementById('detailBack').addEventListener('click',closeDetail);
   document.getElementById('detailBackBtn').addEventListener('click',closeDetail);
+
+  if(emptyRefresh){
+    emptyRefresh.addEventListener('click',()=>syncAndRender({skipScroll:true}));
+  }
+  if(errorRetry){
+    errorRetry.addEventListener('click',()=>load());
+  }
 
   if(detailReassess){
     detailReassess.addEventListener('click',()=>{
