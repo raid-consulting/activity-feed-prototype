@@ -92,10 +92,24 @@
         <h3 id="detailHeading" style="margin:0 0 8px 0;color:var(--ink)">Select an email</h3>
         <p id="detailMeta">Choose a message from the inbox to review its contents.</p>
         <p id="detailBody"></p>
+        <section id="detailAiSection" style="display:grid;gap:6px;margin-top:14px">
+          <h4 style="margin:0;color:var(--ink);font-size:clamp(15px,1.8vw,17px)">AI readiness</h4>
+          <p class="meta" id="detailAiCategory">Category: Grey</p>
+          <p class="meta" id="detailAiConfidence">Confidence: –</p>
+          <p class="meta" id="detailAiAssessed">Assessed: –</p>
+          <p class="meta" id="detailAiNotes">Notes: Metadata pending.</p>
+          <p class="meta" id="detailAiBlockers">Blockers: None</p>
+          <p class="meta" id="detailAiPermissions">Required permissions: None</p>
+          <p class="meta" id="detailAiContext">Required context: None</p>
+          <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:10px">
+            <button class="btn" type="button" id="detailReassess">Reassess AI metadata</button>
+          </div>
+        </section>
       </div>
     </section>
   </main>
 
+<script src="ai-classifier.js"></script>
 <script>
   const DB_KEY='faux-emails', AUTH_KEY='faux-auth';
   function svgPentagon(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 6-3.4 10.5H6.4L3 8l9-6z"/></svg>'; }
@@ -152,16 +166,64 @@
 
   function seedDB(){
     if(localStorage.getItem(DB_KEY)) return;
-    const now=Date.now();
-    const emails=[
-      {id:'e1', from:'billing@tenant.io', subject:'Payment overdue: INV-1043', body:'Please process the pending invoice within 3 days to avoid late fees.', status:'urgent', received: now-3600*1000*6, aiCategory:'red', aiSynopsis:'Manual review required to confirm payment details before automation can resume.'},
-      {id:'e2', from:'noreply@mailer.ai', subject:'Draft reply prepared', body:'AI drafted a response to tenant question about parking. Review and approve.', status:'draft', received: now-3600*1000*12, aiCategory:'green', aiSynopsis:'Automated draft is ready — only a quick approval is needed.'},
-      {id:'e3', from:'support@locks.example', subject:'Smartlock offline – needs context', body:'Device reported intermittent connectivity. Do you want AI to attempt a reset?', status:'needs_context', received: now-3600*1000*22, aiCategory:'blue', aiSynopsis:'Additional environment context requested before continuing with automation.'},
-      {id:'e4', from:'updates@crm.example', subject:'Profile note: tenant has a dog', body:'FYI: Add pet note to the profile. No action required.', status:'info', received: now-3600*1000*30, aiSynopsis:'Informational update only — automation metadata pending.'},
-      {id:'e5', from:'system@ops.example', subject:'Unhandled case detected', body:'AI could not determine a safe action. Manual review required.', status:'manual', received: now-3600*1000*40, aiCategory:'red', aiSynopsis:'AI fell back to manual handling due to conflicting signals.'}
+    const now = Date.now();
+    const emails = [
+      {id:'e1', from:'billing@tenant.io', subject:'Payment overdue: INV-1043', body:'Please process the pending invoice within 3 days to avoid late fees. Manual review advised before charging the account.', status:'urgent', received: now-3600*1000*6},
+      {id:'e2', from:'noreply@mailer.ai', subject:'Draft reply prepared', body:'AI drafted a response to tenant question about parking. Review and approve to send automatically.', status:'draft', received: now-3600*1000*12},
+      {id:'e3', from:'support@locks.example', subject:'Smartlock offline – needs context', body:'Device reported intermittent connectivity and needs context about the environment before attempting a reset.', status:'needs_context', received: now-3600*1000*22},
+      {id:'e4', from:'updates@crm.example', subject:'Profile note: tenant has a dog', body:'FYI: Add pet note to the profile. No action required yet.', status:'info', received: now-3600*1000*30},
+      {id:'e5', from:'system@ops.example', subject:'Unhandled case detected', body:'AI could not determine a safe action. Manual review required to resolve the unhandled workflow.', status:'manual', received: now-3600*1000*40}
     ];
+    const assessed = window.AIClassifier ? window.AIClassifier.ingest(emails, new Date(now)) : emails;
+    localStorage.setItem(DB_KEY, JSON.stringify(assessed));
+  }
+
+  function rawEmails(){
+    try {
+      return JSON.parse(localStorage.getItem(DB_KEY)) || [];
+    } catch {
+      return [];
+    }
+  }
+
+  function persistEmails(emails){
     localStorage.setItem(DB_KEY, JSON.stringify(emails));
   }
+
+  function getEmails(){
+    const emails = rawEmails();
+    let mutated = false;
+    if(window.AIClassifier){
+      emails.forEach(email => {
+        const version = email.ai && email.ai.assessor_version;
+        if(!email.ai || version !== window.AIClassifier.VERSION){
+          window.AIClassifier.applyAssessment(email);
+          mutated = true;
+        } else {
+          email.aiCategory = email.ai.category;
+          email.aiSynopsis = email.ai.notes;
+        }
+      });
+    }
+    if(mutated){
+      persistEmails(emails);
+    }
+    return emails;
+  }
+
+  function reassessEmail(id){
+    if(!window.AIClassifier) return null;
+    const emails = rawEmails();
+    const updated = window.AIClassifier.reassess(emails, id, new Date());
+    if(updated){
+      persistEmails(emails);
+    }
+    return updated;
+  }
+
+  window.aiAssessorAPI = {
+    reassessEmail
+  };
   function fmt(ts){return new Date(ts).toLocaleString()}
   function ensureAuth(){ if(!localStorage.getItem(AUTH_KEY)){ window.location.href='index.html'; } }
   function setTheme(theme){
@@ -194,7 +256,39 @@
   const detailHeading = document.getElementById('detailHeading');
   const detailMeta = document.getElementById('detailMeta');
   const detailBody = document.getElementById('detailBody');
+  const detailAiCategory = document.getElementById('detailAiCategory');
+  const detailAiConfidence = document.getElementById('detailAiConfidence');
+  const detailAiAssessed = document.getElementById('detailAiAssessed');
+  const detailAiNotes = document.getElementById('detailAiNotes');
+  const detailAiBlockers = document.getElementById('detailAiBlockers');
+  const detailAiPermissions = document.getElementById('detailAiPermissions');
+  const detailAiContext = document.getElementById('detailAiContext');
+  const detailReassess = document.getElementById('detailReassess');
   const backToList = document.getElementById('backToList');
+
+  let activeEmailId = null;
+
+  function titleCase(str=''){
+    if(!str) return 'Grey';
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
+
+  function formatList(items, fallback='None'){
+    return Array.isArray(items) && items.length ? items.join(', ') : fallback;
+  }
+
+  function populateAi(email){
+    const ai = email.ai || {};
+    const confidence = typeof ai.confidence === 'number' ? `${Math.round(ai.confidence * 100)}%` : '–';
+    const assessed = ai.assessed_at ? new Date(ai.assessed_at).toLocaleString() : '–';
+    detailAiCategory.textContent = `Category: ${titleCase(ai.category || 'grey')}`;
+    detailAiConfidence.textContent = `Confidence: ${confidence}`;
+    detailAiAssessed.textContent = `Assessed: ${assessed}`;
+    detailAiNotes.textContent = `Notes: ${ai.notes || 'Metadata pending.'}`;
+    detailAiBlockers.textContent = `Blockers: ${formatList(ai.blockers)}`;
+    detailAiPermissions.textContent = `Required permissions: ${formatList(ai.required_permissions)}`;
+    detailAiContext.textContent = `Required context: ${formatList(ai.required_context)}`;
+  }
 
   function showList(){
     listPanel.hidden = false;
@@ -205,6 +299,8 @@
     detailHeading.textContent = email.subject;
     detailMeta.innerHTML = `<strong>From:</strong> ${email.from} • <strong>Received:</strong> ${fmt(email.received)} • <strong>Status:</strong> ${email.status}`;
     detailBody.textContent = email.body;
+    populateAi(email);
+    activeEmailId = email.id;
     listPanel.hidden = true;
     detailPanel.hidden = false;
   }
@@ -212,7 +308,7 @@
   backToList.addEventListener('click', showList);
 
   function render(){
-    const emails = JSON.parse(localStorage.getItem(DB_KEY)||'[]');
+    const emails = getEmails();
     tbody.innerHTML = emails.map(e => `
       <tr>
         <td>${e.from}</td>
@@ -224,9 +320,23 @@
     tbody.querySelectorAll('button[data-id]').forEach(b => b.onclick = () => viewEmail(b.getAttribute('data-id')));
   }
   function viewEmail(id){
-    const emails = JSON.parse(localStorage.getItem(DB_KEY)||'[]');
+    const emails = getEmails();
     const e = emails.find(x=>x.id===id); if(!e) return;
     showDetail(e);
+  }
+
+  if(detailReassess){
+    detailReassess.addEventListener('click', () => {
+      if(!activeEmailId) return;
+      const updated = reassessEmail(activeEmailId);
+      if(updated){
+        const emails = getEmails();
+        const refreshed = emails.find(item => item.id === activeEmailId);
+        if(refreshed){
+          showDetail(refreshed);
+        }
+      }
+    });
   }
 
   document.getElementById('reset').onclick = ()=>{ localStorage.removeItem(DB_KEY); seedDB(); render(); showList(); };

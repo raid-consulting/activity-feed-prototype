@@ -176,17 +176,21 @@
           <h2 id="detailTitle">Select an item</h2>
           <p id="detailMeta">Pick a review item to see its automation readiness.</p>
           <p id="detailSynopsis"></p>
+          <p class="meta" id="detailAiMeta"></p>
+          <p class="meta" id="detailAiRequirements"></p>
           <p id="detailBody"></p>
           <div class="actions">
             <button class="btn" id="detailOpen">Open in inbox</button>
             <button class="btn" id="detailApprove">Approve automation</button>
             <button class="btn" id="detailArchive">Archive</button>
+            <button class="btn" id="detailReassess">Reassess AI metadata</button>
           </div>
         </article>
       </div>
     </section>
   </main>
 
+<script src="ai-classifier.js"></script>
 <script>
   const DB_KEY='faux-emails', AUTH_KEY='faux-auth';
 
@@ -210,14 +214,63 @@
     if(localStorage.getItem(DB_KEY)) return;
     const now=Date.now();
     const emails=[
-      {id:'e1', from:'billing@tenant.io', subject:'Payment overdue: INV-1043', body:'Please process the pending invoice within 3 days to avoid late fees.', status:'urgent', received: now-3600*1000*6, aiCategory:'red', aiSynopsis:'Manual review required to confirm payment details before automation can resume.'},
-      {id:'e2', from:'noreply@mailer.ai', subject:'Draft reply prepared', body:'AI drafted a response to tenant question about parking. Review and approve.', status:'draft', received: now-3600*1000*12, aiCategory:'green', aiSynopsis:'Automated draft is ready — only a quick approval is needed.'},
-      {id:'e3', from:'support@locks.example', subject:'Smartlock offline – needs context', body:'Device reported intermittent connectivity. Do you want AI to attempt a reset?', status:'needs_context', received: now-3600*1000*22, aiCategory:'blue', aiSynopsis:'Additional environment context requested before continuing with automation.'},
-      {id:'e4', from:'updates@crm.example', subject:'Profile note: tenant has a dog', body:'FYI: Add pet note to the profile. No action required.', status:'info', received: now-3600*1000*30, aiSynopsis:'Informational update only — automation metadata pending.'},
-      {id:'e5', from:'system@ops.example', subject:'Unhandled case detected', body:'AI could not determine a safe action. Manual review required.', status:'manual', received: now-3600*1000*40, aiCategory:'red', aiSynopsis:'AI fell back to manual handling due to conflicting signals.'}
+      {id:'e1', from:'billing@tenant.io', subject:'Payment overdue: INV-1043', body:'Please process the pending invoice within 3 days to avoid late fees. Manual review advised before charging the account.', status:'urgent', received: now-3600*1000*6},
+      {id:'e2', from:'noreply@mailer.ai', subject:'Draft reply prepared', body:'AI drafted a response to tenant question about parking. Review and approve to send automatically.', status:'draft', received: now-3600*1000*12},
+      {id:'e3', from:'support@locks.example', subject:'Smartlock offline – needs context', body:'Device reported intermittent connectivity and needs context about the environment before attempting a reset.', status:'needs_context', received: now-3600*1000*22},
+      {id:'e4', from:'updates@crm.example', subject:'Profile note: tenant has a dog', body:'FYI: Add pet note to the profile. No action required yet.', status:'info', received: now-3600*1000*30},
+      {id:'e5', from:'system@ops.example', subject:'Unhandled case detected', body:'AI could not determine a safe action. Manual review required to resolve the unhandled workflow.', status:'manual', received: now-3600*1000*40}
     ];
+    const assessed = window.AIClassifier ? window.AIClassifier.ingest(emails, new Date(now)) : emails;
+    localStorage.setItem(DB_KEY, JSON.stringify(assessed));
+  }
+
+  function rawEmails(){
+    try{
+      return JSON.parse(localStorage.getItem(DB_KEY))||[];
+    }catch{
+      return [];
+    }
+  }
+
+  function persistEmails(emails){
     localStorage.setItem(DB_KEY, JSON.stringify(emails));
   }
+
+  function getEmails(){
+    const emails = rawEmails();
+    let mutated = false;
+    if(window.AIClassifier){
+      emails.forEach(email => {
+        const version = email.ai && email.ai.assessor_version;
+        if(!email.ai || version !== window.AIClassifier.VERSION){
+          window.AIClassifier.applyAssessment(email);
+          mutated = true;
+        } else {
+          email.aiCategory = email.ai.category;
+          email.aiSynopsis = email.ai.notes;
+        }
+      });
+    }
+    if(mutated){
+      persistEmails(emails);
+    }
+    return emails;
+  }
+
+  function reassessEmail(id){
+    if(!window.AIClassifier) return null;
+    const emails = rawEmails();
+    const updated = window.AIClassifier.reassess(emails, id, new Date());
+    if(updated){
+      persistEmails(emails);
+    }
+    return updated;
+  }
+
+  window.aiAssessorAPI = {
+    reassessEmail
+  };
+
   seedDB();
 
   function isAuthed(){ return !!localStorage.getItem(AUTH_KEY); }
@@ -267,11 +320,20 @@
     grey:{label:'Grey • Metadata pending',accent:'accent-grey',detail:'AI has not provided metadata for this item yet.'}
   };
 
+  function formatList(items, fallback='None'){
+    return Array.isArray(items) && items.length ? items.join(', ') : fallback;
+  }
+
+  function formatConfidence(ai){
+    return typeof ai.confidence === 'number' ? `${Math.round(ai.confidence * 100)}%` : null;
+  }
+
   const state={
     items:[],
     filter:'all',
     search:'',
-    loading:true
+    loading:true,
+    detailId:null
   };
 
   const groupContainer=document.getElementById('groupContainer');
@@ -287,9 +349,13 @@
   const detailSynopsis=document.getElementById('detailSynopsis');
   const detailTag=document.getElementById('detailTag');
   const detailCrumb=document.getElementById('detailCrumb');
+  const detailAiMeta=document.getElementById('detailAiMeta');
+  const detailAiRequirements=document.getElementById('detailAiRequirements');
+  const detailReassess=document.getElementById('detailReassess');
 
   function getCategory(item){
-    const cat=(item.aiCategory||'').toLowerCase();
+    const raw = item && item.ai ? item.ai.category : null;
+    const cat=((raw || item.aiCategory || '')).toLowerCase();
     if(cat==='green' || cat==='blue' || cat==='red') return cat;
     return 'grey';
   }
@@ -298,7 +364,18 @@
 
   function matchesSearch(item, term){
     if(!term) return true;
-    const hay=[item.subject,item.from,item.body,item.status,item.aiSynopsis].map(v=>String(v||'').toLowerCase()).join(' ');
+    const ai=item.ai||{};
+    const hay=[
+      item.subject,
+      item.from,
+      item.body,
+      item.status,
+      item.aiSynopsis,
+      ai.notes,
+      ...(ai.blockers||[]),
+      ...(ai.required_permissions||[]),
+      ...(ai.required_context||[])
+    ].map(v=>String(v||'').toLowerCase()).join(' ');
     return hay.includes(term.toLowerCase());
   }
 
@@ -346,7 +423,11 @@
         const info=CATEGORY_INFO[groupKey];
         const cards=groupItems.map(item=>{
           const accent=info.accent;
-          const synopsis=item.aiSynopsis || 'Metadata pending for this message.';
+          const ai=item.ai||{};
+          const synopsis=ai.notes || item.aiSynopsis || 'Metadata pending for this message.';
+          const confidence=formatConfidence(ai);
+          const metaParts=[`From ${escapeHtml(item.from)}`,`Status: ${escapeHtml(item.status)}`];
+          if(confidence){ metaParts.push(`Confidence: ${confidence}`); }
           return `<button class="card ${accent}" data-id="${item.id}">
             <div class="card-content">
               <div class="card-header">
@@ -355,7 +436,7 @@
               </div>
               <div class="title-text">${escapeHtml(item.subject)}</div>
               <p class="description">${escapeHtml(synopsis)}</p>
-              <div class="meta">From ${escapeHtml(item.from)} • Status: ${escapeHtml(item.status)}</div>
+              <div class="meta">${metaParts.join(' • ')}</div>
             </div>
             <span class="chev">${'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>'}</span>
           </button>`;
@@ -376,15 +457,17 @@
     renderList();
   }
 
+  function refreshItems(){
+    const data=getEmails();
+    state.items=Array.isArray(data) ? data.slice().sort((a,b)=>b.received-a.received) : [];
+  }
+
   function load(){
     loadingState.hidden=false;
     groupContainer.hidden=true;
     emptyState.hidden=true;
     setTimeout(()=>{
-      try{
-        const data=JSON.parse(localStorage.getItem(DB_KEY)||'[]');
-        state.items=Array.isArray(data) ? data.slice().sort((a,b)=>b.received-a.received) : [];
-      }catch{ state.items=[]; }
+      refreshItems();
       state.loading=false;
       render();
     },160);
@@ -416,13 +499,23 @@
     if(!email) return;
     const category=getCategory(email);
     const info=CATEGORY_INFO[category];
+    const ai=email.ai||{};
+    const confidence=formatConfidence(ai) || '–';
+    const assessed=ai.assessed_at ? new Date(ai.assessed_at).toLocaleString() : '–';
+    const assessor=ai.assessor_version || 'unknown';
+    const blockers=formatList(ai.blockers);
+    const permissions=formatList(ai.required_permissions);
+    const context=formatList(ai.required_context);
     detailTitle.textContent=email.subject;
-    detailMeta.innerHTML=`<strong>From:</strong> ${escapeHtml(email.from)} • <strong>Received:</strong> ${formatTime(email.received)} • <strong>Status:</strong> ${escapeHtml(email.status)}`;
+    detailMeta.innerHTML=`<strong>From:</strong> ${escapeHtml(email.from)} • <strong>Received:</strong> ${formatTime(email.received)} • <strong>Status:</strong> ${escapeHtml(email.status)} • <strong>AI:</strong> ${category.toUpperCase()} (${confidence} confidence)`;
     detailBody.textContent=email.body;
-    detailSynopsis.textContent=email.aiSynopsis || 'Metadata pending for this message.';
+    detailSynopsis.textContent=ai.notes || email.aiSynopsis || 'Metadata pending for this message.';
+    detailAiMeta.textContent=`Assessed ${assessed} • Assessor: ${escapeHtml(assessor)} • Confidence: ${confidence}`;
+    detailAiRequirements.textContent=`Blockers: ${escapeHtml(blockers)} • Permissions: ${escapeHtml(permissions)} • Context: ${escapeHtml(context)}`;
     detailTag.textContent=info.label;
     detailTag.className=`detail-tag ${category}`;
     detailCrumb.textContent=email.subject;
+    state.detailId=id;
     reviewContent.hidden=true;
     detailView.setAttribute('aria-hidden','false');
     detailView.scrollIntoView({behavior:'smooth',block:'start'});
@@ -431,10 +524,23 @@
   function closeDetail(){
     reviewContent.hidden=false;
     detailView.setAttribute('aria-hidden','true');
+    state.detailId=null;
   }
 
   document.getElementById('detailBack').addEventListener('click',closeDetail);
   document.getElementById('detailBackBtn').addEventListener('click',closeDetail);
+
+  if(detailReassess){
+    detailReassess.addEventListener('click',()=>{
+      if(!state.detailId) return;
+      const updated=reassessEmail(state.detailId);
+      if(updated){
+        refreshItems();
+        render();
+        openDetail(state.detailId);
+      }
+    });
+  }
 
   load();
 </script>

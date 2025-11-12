@@ -120,6 +120,7 @@
 <body>
   <main class="frame" id="app"></main>
 
+<script src="ai-classifier.js"></script>
 <script>
   const DB_KEY = 'faux-emails';
   const AUTH_KEY = 'faux-auth';
@@ -128,15 +129,62 @@
     if(localStorage.getItem(DB_KEY)) return;
     const now = Date.now();
     const emails = [
-      {id:'e1', from:'billing@tenant.io', subject:'Payment overdue: INV-1043', body:'Please process the pending invoice within 3 days to avoid late fees.', status:'urgent', received: now-3600*1000*6, aiCategory:'red', aiSynopsis:'Manual review required to confirm payment details before automation can resume.'},
-      {id:'e2', from:'noreply@mailer.ai', subject:'Draft reply prepared', body:'AI drafted a response to tenant question about parking. Review and approve.', status:'draft', received: now-3600*1000*12, aiCategory:'green', aiSynopsis:'Automated draft is ready — only a quick approval is needed.'},
-      {id:'e3', from:'support@locks.example', subject:'Smartlock offline – needs context', body:'Device reported intermittent connectivity. Do you want AI to attempt a reset?', status:'needs_context', received: now-3600*1000*22, aiCategory:'blue', aiSynopsis:'Additional environment context requested before continuing with automation.'},
-      {id:'e4', from:'updates@crm.example', subject:'Profile note: tenant has a dog', body:'FYI: Add pet note to the profile. No action required.', status:'info', received: now-3600*1000*30, aiSynopsis:'Informational update only — automation metadata pending.'},
-      {id:'e5', from:'system@ops.example', subject:'Unhandled case detected', body:'AI could not determine a safe action. Manual review required.', status:'manual', received: now-3600*1000*40, aiCategory:'red', aiSynopsis:'AI fell back to manual handling due to conflicting signals.'}
+      {id:'e1', from:'billing@tenant.io', subject:'Payment overdue: INV-1043', body:'Please process the pending invoice within 3 days to avoid late fees. Manual review advised before charging the account.', status:'urgent', received: now-3600*1000*6},
+      {id:'e2', from:'noreply@mailer.ai', subject:'Draft reply prepared', body:'AI drafted a response to tenant question about parking. Review and approve to send automatically.', status:'draft', received: now-3600*1000*12},
+      {id:'e3', from:'support@locks.example', subject:'Smartlock offline – needs context', body:'Device reported intermittent connectivity and needs context about the environment before attempting a reset.', status:'needs_context', received: now-3600*1000*22},
+      {id:'e4', from:'updates@crm.example', subject:'Profile note: tenant has a dog', body:'FYI: Add pet note to the profile. No action required yet.', status:'info', received: now-3600*1000*30},
+      {id:'e5', from:'system@ops.example', subject:'Unhandled case detected', body:'AI could not determine a safe action. Manual review required to resolve the unhandled workflow.', status:'manual', received: now-3600*1000*40}
     ];
+    const assessed = window.AIClassifier ? window.AIClassifier.ingest(emails, new Date(now)) : emails;
+    localStorage.setItem(DB_KEY, JSON.stringify(assessed));
+  }
+
+  function rawEmails(){
+    try {
+      return JSON.parse(localStorage.getItem(DB_KEY)) || [];
+    } catch {
+      return [];
+    }
+  }
+
+  function persistEmails(emails){
     localStorage.setItem(DB_KEY, JSON.stringify(emails));
   }
-  function getEmails(){ try { return JSON.parse(localStorage.getItem(DB_KEY))||[] } catch { return [] } }
+
+  function getEmails(){
+    const emails = rawEmails();
+    let mutated = false;
+    if(window.AIClassifier){
+      emails.forEach(email => {
+        const originalVersion = email.ai && email.ai.assessor_version;
+        if(!email.ai || originalVersion !== window.AIClassifier.VERSION){
+          window.AIClassifier.applyAssessment(email);
+          mutated = true;
+        } else {
+          email.aiCategory = email.ai.category;
+          email.aiSynopsis = email.ai.notes;
+        }
+      });
+    }
+    if(mutated){
+      persistEmails(emails);
+    }
+    return emails;
+  }
+
+  function reassessEmail(id){
+    const emails = rawEmails();
+    if(!window.AIClassifier) return null;
+    const updated = window.AIClassifier.reassess(emails, id, new Date());
+    if(updated){
+      persistEmails(emails);
+    }
+    return updated;
+  }
+
+  window.aiAssessorAPI = {
+    reassessEmail
+  };
   function isAuthed(){ return !!localStorage.getItem(AUTH_KEY) }
   function setTheme(theme){
     document.documentElement.setAttribute('data-theme', theme);
@@ -343,8 +391,13 @@
     const detailCrumb = document.getElementById('detailCrumb');
 
     const showDetail = (email) => {
+      const ai = email.ai || {};
+      const confidence = typeof ai.confidence === 'number' ? Math.round(ai.confidence * 100) : null;
+      const aiSummary = ai.category
+        ? `${ai.category.toUpperCase()}${confidence !== null ? ` • ${confidence}% confidence` : ''}`
+        : 'Grey • Metadata pending';
       detailTitle.textContent = email.subject;
-      detailMeta.innerHTML = `<strong>From:</strong> ${email.from} • <strong>Received:</strong> ${formatTime(email.received)}`;
+      detailMeta.innerHTML = `<strong>From:</strong> ${email.from} • <strong>Received:</strong> ${formatTime(email.received)} • <strong>AI:</strong> ${aiSummary}`;
       detailBody.textContent = email.body;
       detailCrumb.textContent = email.subject;
       feedContent.hidden = true;
