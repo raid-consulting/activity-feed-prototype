@@ -207,7 +207,7 @@
           <p>No items to review yet.</p>
           <button class="empty-refresh" type="button" id="emptyRefresh">Refresh now</button>
         </div>
-        <div class="error" id="errorState" hidden role="region" aria-label="AI review error state" tabindex="-1">
+        <div class="error" id="errorState" data-banner-kind="error" hidden role="region" aria-label="AI review error state" tabindex="-1">
           <p>We hit a snag loading review signals.</p>
           <button class="empty-refresh" type="button" id="errorRetry">Try again</button>
         </div>
@@ -491,8 +491,11 @@
       itemCount:0,
       usingCache:false,
       retries:0,
+      maxRetries:0,
       durationMs:0,
       networkWasOffline:false,
+      lastErrorCode:null,
+      lastErrorMessage:'',
       timestamp:new Date().toISOString()
     }
   };
@@ -558,6 +561,16 @@
     try {
       if(window && window.console && typeof window.console.info==='function'){
         window.console.info(`[ai_review.cached] ${tag}`, payload);
+      }
+    } catch (_) {
+      /* noop */
+    }
+  }
+
+  function logErrorBanner(tag,payload){
+    try {
+      if(window && window.console && typeof window.console.info==='function'){
+        window.console.info(`[ai_review.error] ${tag}`, payload);
       }
     } catch (_) {
       /* noop */
@@ -772,6 +785,126 @@
     }
   }
 
+  function evaluateErrorBannerDecision({phase,retries,maxRetries,lastErrorCode,lastErrorMessage,durationMs}){
+    const numericRetries=Number.isFinite(Number(retries))?Number(retries):0;
+    const numericMax=Number.isFinite(Number(maxRetries))?Number(maxRetries):null;
+    const isErrorPhase=phase==='error';
+    const hasBudget=numericMax!==null && numericRetries<numericMax;
+    const shouldShow=isErrorPhase && !hasBudget;
+    let reason='not_error';
+    if(isErrorPhase){
+      reason=hasBudget?'transient_retry':'final_error';
+    }
+    const stateSnapshot={
+      phase,
+      retries:numericRetries,
+      durationMs:Number.isFinite(Number(durationMs))?Number(durationMs):0
+    };
+    if(numericMax!==null){
+      stateSnapshot.maxRetries=numericMax;
+    }
+    if(typeof lastErrorCode!=='undefined'){
+      stateSnapshot.lastErrorCode=lastErrorCode===undefined?null:lastErrorCode;
+    }
+    if(typeof lastErrorMessage!=='undefined'){
+      stateSnapshot.lastErrorMessage=lastErrorMessage||'';
+    }
+    return { shouldShow, reason, state:stateSnapshot };
+  }
+
+  function collectErrorBannerNodes(){
+    const selectors=['[data-banner-kind="error"]','#errorState'];
+    const seen=new Set();
+    const nodes=[];
+    selectors.forEach(sel=>{
+      const list=Array.from(document.querySelectorAll(sel));
+      list.forEach(node=>{
+        if(!node) return;
+        if(seen.has(node)) return;
+        seen.add(node);
+        nodes.push(node);
+      });
+    });
+    return nodes;
+  }
+
+  function applyErrorBannerVisibility({decision,message,messageNode}){
+    const nodes=collectErrorBannerNodes();
+    logErrorBanner('decision',{shouldShow:decision.shouldShow,reason:decision.reason,state:decision.state});
+    if(nodes.length>1){
+      logErrorBanner('multiple_nodes',{
+        count:nodes.length,
+        nodes:nodes.map((node,index)=>describeBannerNode(node,index))
+      });
+    }
+    const primary=nodes[0]||null;
+    const before=snapshotBannerNode(primary);
+    logErrorBanner('dom_before',before);
+    nodes.forEach((node,index)=>{
+      if(!node) return;
+      const showNode=decision.shouldShow && node===primary;
+      try {
+        if(showNode){
+          node.hidden=false;
+          if(typeof node.removeAttribute==='function'){
+            node.removeAttribute('hidden');
+            node.setAttribute('aria-hidden','false');
+          } else if(node.attributes){
+            delete node.attributes.hidden;
+            node.attributes['aria-hidden']='false';
+          }
+          if(typeof node.setAttribute==='function'){
+            node.setAttribute('data-banner-visible','true');
+          } else if(node.attributes){
+            node.attributes['data-banner-visible']='true';
+          }
+          setInert(node,false);
+          let target=messageNode;
+          if(!target && node && typeof node.querySelector==='function'){
+            try { target=node.querySelector('p'); }
+            catch (_) { target=null; }
+          }
+          if(target && message){
+            target.textContent=message;
+          }
+        } else {
+          if(typeof node.setAttribute==='function'){
+            node.setAttribute('hidden','');
+            node.setAttribute('aria-hidden','true');
+            node.removeAttribute('data-banner-visible');
+          } else if(node.attributes){
+            node.attributes.hidden='';
+            node.attributes['aria-hidden']='true';
+            delete node.attributes['data-banner-visible'];
+          }
+          node.hidden=true;
+          setInert(node,true);
+          if(index>0){
+            node.hidden=true;
+          }
+        }
+      } catch (_) {
+        /* noop */
+      }
+    });
+    const after=snapshotBannerNode(primary);
+    logErrorBanner('dom_after',after);
+    const computedValue=after.computedDisplay;
+    const computedUnknown=computedValue==='n/a';
+    const visibleAfter=after.exists && !after.hiddenAttr && (computedUnknown || computedValue!=='none');
+    const mismatch=!computedUnknown && decision.shouldShow!==visibleAfter;
+    if(mismatch){
+      logErrorBanner('conflict',{
+        reason:decision.shouldShow?'hidden_when_should_show':'visible_when_should_hide',
+        snapshots:{before,after}
+      });
+    }
+    return {
+      shouldShow:decision.shouldShow && !!primary,
+      primaryNode:decision.shouldShow && primary ? primary : null
+    };
+  }
+
   function updateLoadOutcome(updates={}){
     const next={
       ...state.loadOutcome,
@@ -806,8 +939,10 @@
   }
 
   const REFRESH_INTERVAL = window.AutoRefresh ? window.AutoRefresh.DEFAULT_INTERVAL : 15000;
+  const RETRY_DELAYS_MS=[600,1500];
   let autoRefreshController = null;
   let activeLoadTimer=null;
+  let activeRetryTimer=null;
 
   const groupContainer=document.getElementById('groupContainer');
   const loadingState=document.getElementById('loadingState');
@@ -844,6 +979,13 @@
       ? window.aiReviewDataSource.fetch
       : ()=>getEmails();
     return Promise.resolve().then(()=>loader());
+  }
+
+  function getRetryDelay(attemptNumber){
+    if(!RETRY_DELAYS_MS.length) return 0;
+    const index=Math.max(0, Math.min(RETRY_DELAYS_MS.length-1, attemptNumber-1));
+    const delay=RETRY_DELAYS_MS[index];
+    return Number.isFinite(delay) && delay>=0 ? delay : 0;
   }
 
   state.cachedItems=normalizeItems(getEmails());
@@ -951,7 +1093,15 @@
     const phase=state.loadOutcome.phase;
     const usingCache=state.loadOutcome.usingCache;
     const networkWasOffline=state.loadOutcome.networkWasOffline;
-    const isLoading=phase==='loading';
+    const errorDecision=evaluateErrorBannerDecision({
+      phase,
+      retries:state.loadOutcome.retries,
+      maxRetries:state.loadOutcome.maxRetries,
+      lastErrorCode:state.loadOutcome.lastErrorCode,
+      lastErrorMessage:state.loadOutcome.lastErrorMessage || state.errorMessage,
+      durationMs:state.loadOutcome.durationMs
+    });
+    const isLoading=(phase==='loading') || (phase==='error' && errorDecision.reason==='transient_retry');
     const shouldRenderList=(phase==='success' && state.items.length>0);
 
     if(!isLoading){
@@ -968,7 +1118,7 @@
       emptyReason=state.loadOutcome.itemCount===0?'success_zero':'has_items';
     }
     const showCached=(phase==='success' && usingCache && state.loadOutcome.itemCount>0);
-    const showError=(phase==='error');
+    const showError=errorDecision.shouldShow;
     const showNoResults=shouldRenderList && state.items.length>0 && !hasVisible;
 
     const nextBannerKind=shouldShowEmpty ? 'empty' : showCached ? 'cached' : showError ? 'error' : null;
@@ -1051,15 +1201,14 @@
       emptyResult.primaryNode.focus();
     }
 
-    if(errorState){
-      const showErrorBanner=nextBannerKind==='error';
-      errorState.hidden=!showErrorBanner;
-      if(showErrorBanner && errorMessage){
-        errorMessage.textContent=state.errorMessage || DEFAULT_ERROR_MESSAGE;
-      }
-      if(showErrorBanner && state.lastView!==VIEW_STATES.ERROR && typeof errorState.focus==='function'){
-        errorState.focus();
-      }
+    const errorMessageText=state.errorMessage || state.loadOutcome.lastErrorMessage || DEFAULT_ERROR_MESSAGE;
+    const errorResult=applyErrorBannerVisibility({
+      decision:errorDecision,
+      message:errorMessageText,
+      messageNode:errorMessage
+    });
+    if(errorResult.shouldShow && state.lastView!==VIEW_STATES.ERROR && errorResult.primaryNode && typeof errorResult.primaryNode.focus==='function'){
+      errorResult.primaryNode.focus();
     }
 
     const cachedVisibilityReason=(nextBannerKind==='cached')
@@ -1079,7 +1228,7 @@
       message:state.errorMessage || 'Showing cached results while we reconnect…'
     });
 
-    if((state.view===VIEW_STATES.ERROR || state.view===VIEW_STATES.EMPTY) && (showError || shouldShowEmpty)){
+    if((state.view===VIEW_STATES.ERROR || state.view===VIEW_STATES.EMPTY) && (errorResult.shouldShow || shouldShowEmpty)){
       closeDetail();
     }
 
@@ -1127,18 +1276,45 @@
     }
   }
 
+  function normalizeLoadError(err){
+    if(!err) return { message:DEFAULT_ERROR_MESSAGE, code:null };
+    if(typeof err==='string'){
+      return { message:err, code:null };
+    }
+    const message=err && typeof err.message==='string' && err.message.trim()
+      ? err.message
+      : DEFAULT_ERROR_MESSAGE;
+    const code=(err && (err.code ?? err.status)) || (err && typeof err.name==='string' ? err.name : null);
+    return { message, code:code ?? null };
+  }
+
   function load(){
     if(state.pendingLoad) return;
+    if(activeRetryTimer){
+      clearTimeout(activeRetryTimer);
+      activeRetryTimer=null;
+    }
     state.pendingLoad=true;
     state.view=VIEW_STATES.LOADING;
     state.errorMessage='';
+    const initialOffline=!navigatorOnline();
+    const maxRetries=Math.max(0, RETRY_DELAYS_MS.length);
+    const attempt={
+      retries:0,
+      maxRetries,
+      settled:false,
+      networkWasOffline:initialOffline
+    };
     updateLoadOutcome({
       phase:'loading',
       usingCache:false,
       retries:0,
+      maxRetries:attempt.maxRetries,
       itemCount:state.items.length,
       durationMs:0,
-      networkWasOffline:!navigatorOnline()
+      networkWasOffline:initialOffline,
+      lastErrorCode:null,
+      lastErrorMessage:''
     });
     render();
     const start=typeof performance!=='undefined' && performance.now ? performance.now() : Date.now();
@@ -1146,11 +1322,6 @@
       clearTimeout(activeLoadTimer);
       activeLoadTimer=null;
     }
-    const attempt={
-      retries:0,
-      settled:false,
-      networkWasOffline:!navigatorOnline()
-    };
     const markOffline=()=>{ attempt.networkWasOffline=true; };
     if(typeof window!=='undefined' && window.addEventListener){
       window.addEventListener('offline', markOffline);
@@ -1160,13 +1331,17 @@
         window.removeEventListener('offline', markOffline);
       }
     };
-    const finalize=({phase,usingCache,itemCount,errorMessage})=>{
+    const finalize=({phase,usingCache,itemCount,errorMessage,errorCode})=>{
       if(attempt.settled) return;
       attempt.settled=true;
       cleanup();
       if(activeLoadTimer){
         clearTimeout(activeLoadTimer);
         activeLoadTimer=null;
+      }
+      if(activeRetryTimer){
+        clearTimeout(activeRetryTimer);
+        activeRetryTimer=null;
       }
       state.pendingLoad=false;
       const end=typeof performance!=='undefined' && performance.now ? performance.now() : Date.now();
@@ -1179,8 +1354,11 @@
         usingCache:!!usingCache,
         itemCount,
         retries:attempt.retries,
+        maxRetries:attempt.maxRetries,
         durationMs:duration,
-        networkWasOffline:attempt.networkWasOffline || !navigatorOnline()
+        networkWasOffline:attempt.networkWasOffline || !navigatorOnline(),
+        lastErrorCode:errorCode ?? null,
+        lastErrorMessage:errorMessage || ''
       });
       try {
         const status=phase!=='success'
@@ -1208,16 +1386,58 @@
       const nextView=state.items.length?VIEW_STATES.SUCCESS:VIEW_STATES.EMPTY;
       state.view=nextView;
       state.errorMessage='';
-      finalize({phase:'success',usingCache:false,itemCount:state.items.length});
+      finalize({phase:'success',usingCache:false,itemCount:state.items.length,errorMessage:'',errorCode:null});
       render();
       ensureAutoRefresh();
     };
-    const handleFailure=message=>{
+    const scheduleRetry=()=>{
+      const delay=getRetryDelay(attempt.retries);
+      if(activeRetryTimer){
+        clearTimeout(activeRetryTimer);
+      }
+      activeRetryTimer=setTimeout(()=>{
+        activeRetryTimer=null;
+        if(attempt.settled) return;
+        beginAttempt();
+      },delay);
+    };
+    const handleFailure=error=>{
       if(attempt.settled) return;
-      const errorMsg=message || DEFAULT_ERROR_MESSAGE;
+      if(activeLoadTimer){
+        clearTimeout(activeLoadTimer);
+        activeLoadTimer=null;
+      }
+      const { message:errorMsg, code:errorCode }=normalizeLoadError(error);
       state.errorMessage=errorMsg;
+      const now=typeof performance!=='undefined' && performance.now ? performance.now() : Date.now();
+      const duration=Math.max(1, Math.round(now-start));
+      const hasRetries=attempt.retries<attempt.maxRetries;
+      if(hasRetries){
+        attempt.retries+=1;
+        state.view=VIEW_STATES.LOADING;
+        updateLoadOutcome({
+          phase:'error',
+          usingCache:false,
+          itemCount:state.items.length,
+          retries:attempt.retries,
+          maxRetries:attempt.maxRetries,
+          durationMs:duration,
+          networkWasOffline:attempt.networkWasOffline || !navigatorOnline(),
+          lastErrorCode:errorCode ?? null,
+          lastErrorMessage:errorMsg
+        });
+        logErrorBanner('retry_progress',{
+          attempt:attempt.retries,
+          maxRetries:attempt.maxRetries,
+          nextDelayMs:getRetryDelay(attempt.retries)
+        });
+        render();
+        scheduleRetry();
+        return;
+      }
       let usingCache=false;
       let phaseLabel='error';
+      let errorCodeValue=errorCode ?? null;
       if(state.cachedItems.length){
         state.items=state.cachedItems.slice();
         state.view=VIEW_STATES.DEGRADED;
@@ -1227,17 +1447,30 @@
         state.items=[];
         state.view=VIEW_STATES.ERROR;
       }
-      finalize({phase:phaseLabel,usingCache,itemCount:state.items.length,errorMessage:errorMsg});
+      finalize({
+        phase:phaseLabel,
+        usingCache,
+        itemCount:state.items.length,
+        errorMessage:errorMsg,
+        errorCode:errorCodeValue
+      });
       render();
       ensureAutoRefresh();
     };
-    fetchLatestItems()
-      .then(handleSuccess)
-      .catch(err=>handleFailure(err && err.message ? err.message : DEFAULT_ERROR_MESSAGE));
-    activeLoadTimer=setTimeout(()=>{
+    const beginAttempt=()=>{
       if(attempt.settled) return;
-      handleFailure(DEFAULT_ERROR_MESSAGE);
-    },LOAD_TIMEOUT_MS);
+      if(activeLoadTimer){
+        clearTimeout(activeLoadTimer);
+      }
+      activeLoadTimer=setTimeout(()=>{
+        if(attempt.settled) return;
+        handleFailure({ message:DEFAULT_ERROR_MESSAGE, code:'timeout' });
+      },LOAD_TIMEOUT_MS);
+      fetchLatestItems()
+        .then(handleSuccess)
+        .catch(handleFailure);
+    };
+    beginAttempt();
   }
 
   function syncAndRender({skipScroll=false}={}){

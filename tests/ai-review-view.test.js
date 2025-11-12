@@ -156,6 +156,7 @@ async function mountAiReview({ loader, seedEmails, cachedEmails }={}){
   const emptyRefresh = registerElement('emptyRefresh', createElement('emptyRefresh'));
   const errorState = registerElement('errorState', createElement('errorState'));
   errorState.setAttribute('hidden', '');
+  errorState.setAttribute('data-banner-kind', 'error');
   const errorMessageNode = createElement();
   errorState.querySelector = (selector) => selector === 'p' ? errorMessageNode : null;
   const errorRetry = registerElement('errorRetry', createElement('errorRetry'));
@@ -208,6 +209,9 @@ async function mountAiReview({ loader, seedEmails, cachedEmails }={}){
       }
       if (selector === '[data-banner-kind="cached"]') {
         return elements.degradedBanner ? [elements.degradedBanner] : [];
+      }
+      if (selector === '[data-banner-kind="error"]' || selector === '#errorState') {
+        return elements.errorState ? [elements.errorState] : [];
       }
       return [];
     },
@@ -366,7 +370,11 @@ async function mountAiReview({ loader, seedEmails, cachedEmails }={}){
 async function settle(env, cycles=3){
   for(let i=0;i<cycles;i++){
     await env.flush();
+    if(env.timers && typeof env.timers.runAll === 'function'){
+      env.timers.runAll();
+    }
   }
+  await env.flush();
 }
 
 function getInfoLogs(env, event){
@@ -383,6 +391,12 @@ function getLatestInfo(env, event){
 function getEmptyLogs(env, tag){
   return env.logs.info
     .filter(args => args[0] === `[ai_review.empty] ${tag}`)
+    .map(args => args[1]);
+}
+
+function getErrorLogs(env, tag){
+  return env.logs.info
+    .filter(args => args[0] === `[ai_review.error] ${tag}`)
     .map(args => args[1]);
 }
 
@@ -413,6 +427,14 @@ async function testSuccessWithItems(){
   assert.strictEqual(getEmptyLogs(env,'dom_before').length>0, true, 'empty banner dom_before emitted');
   assert.strictEqual(getEmptyLogs(env,'dom_after').length>0, true, 'empty banner dom_after emitted');
   assert.strictEqual(getEmptyLogs(env,'conflict').length, 0, 'no empty banner conflicts when items present');
+  const errorDecisions=getErrorLogs(env,'decision');
+  assert(errorDecisions.length>0, 'error banner decision logs emitted on success');
+  const lastErrorDecision=errorDecisions[errorDecisions.length-1];
+  assert.strictEqual(lastErrorDecision.shouldShow, false, 'error banner hidden on success');
+  assert.strictEqual(lastErrorDecision.reason, 'not_error', 'error banner reason not_error on success');
+  assert.strictEqual(getErrorLogs(env,'dom_before').length>0, true, 'error banner dom_before emitted on success render');
+  assert.strictEqual(getErrorLogs(env,'dom_after').length>0, true, 'error banner dom_after emitted on success render');
+  assert.strictEqual(getErrorLogs(env,'conflict').length, 0, 'no error banner conflicts on success');
 }
 
 async function testEmptySuccess(){
@@ -455,6 +477,19 @@ async function testErrorNoCache(){
   assert(bannerLog && bannerLog.active.includes('error'), 'error banner recorded');
   assert(!bannerLog.active.includes('degraded'), 'degraded banner not active when hard error');
   assert.strictEqual(getInfoLogs(env,'banner_conflict').length, 0, 'no conflicts logged on error state');
+  const errorDecisions=getErrorLogs(env,'decision');
+  assert(errorDecisions.length>0, 'error banner decisions captured on failure');
+  const finalDecision=errorDecisions[errorDecisions.length-1];
+  assert.strictEqual(finalDecision.shouldShow, true, 'error banner shown on final failure');
+  assert.strictEqual(finalDecision.reason, 'final_error', 'error banner reason final_error on hard failure');
+  assert(finalDecision.state && finalDecision.state.retries >= finalDecision.state.maxRetries, 'final failure logs exhausted retries');
+  assert.strictEqual(getErrorLogs(env,'dom_before').length>0, true, 'error banner dom_before emitted on failure');
+  assert.strictEqual(getErrorLogs(env,'dom_after').length>0, true, 'error banner dom_after emitted on failure');
+  assert.strictEqual(getErrorLogs(env,'conflict').length, 0, 'no error banner conflicts on failure');
+  const retryLogs=getErrorLogs(env,'retry_progress');
+  assert.strictEqual(retryLogs.length, 2, 'two retry attempts logged before failure');
+  assert.strictEqual(retryLogs[0].attempt, 1, 'first retry attempt logged');
+  assert.strictEqual(retryLogs[1].attempt, 2, 'second retry attempt logged');
 }
 
 async function testErrorWithCache(){
@@ -472,6 +507,37 @@ async function testErrorWithCache(){
   assert(bannerLog && bannerLog.active.includes('degraded'), 'degraded banner recorded');
   assert(!bannerLog.active.includes('error'), 'error banner not active during degraded state');
   assert.strictEqual(getInfoLogs(env,'banner_conflict').length, 0, 'no conflicts logged on degraded state');
+  const errorDecisions=getErrorLogs(env,'decision');
+  assert(errorDecisions.length>0, 'error banner decisions captured with cache fallback');
+  const finalDecision=errorDecisions[errorDecisions.length-1];
+  assert.strictEqual(finalDecision.shouldShow, false, 'error banner hidden when cache available');
+  assert.strictEqual(finalDecision.reason, 'not_error', 'error banner reason not_error when degraded');
+}
+
+async function testTransientRetryThenSuccess(){
+  let attempt=0;
+  const items=[createSampleEmail('t1')];
+  const env = await mountAiReview({
+    loader: () => {
+      attempt++;
+      if(attempt===1){
+        return Promise.reject(new Error('temporary failure'));
+      }
+      return Promise.resolve(items);
+    },
+    seedEmails: []
+  });
+  await settle(env,6);
+
+  assert.strictEqual(env.elements.errorState.hidden, true, 'error banner hidden after successful retry');
+  assert.strictEqual(env.elements.groupContainer.hidden, false, 'group visible after retry success');
+  const decisions=getErrorLogs(env,'decision');
+  assert(decisions.some(entry=>entry.reason==='transient_retry'), 'transient retry decision logged');
+  assert.strictEqual(decisions[decisions.length-1].reason, 'not_error', 'final decision not_error after recovery');
+  const retryLogs=getErrorLogs(env,'retry_progress');
+  assert.strictEqual(retryLogs.length, 1, 'single retry logged before recovery');
+  assert.strictEqual(retryLogs[0].attempt, 1, 'retry_progress captures first retry attempt');
+  assert.strictEqual(getErrorLogs(env,'conflict').length, 0, 'no error banner conflicts during retry flow');
 }
 
 async function testMutualExclusion(){
@@ -491,5 +557,6 @@ async function testMutualExclusion(){
   await runTest('empty success shows only empty state', testEmptySuccess);
   await runTest('error without cache renders only error', testErrorNoCache);
   await runTest('error with cache falls back to degraded view', testErrorWithCache);
+  await runTest('transient failure retries then succeeds without showing error', testTransientRetryThenSuccess);
   await runTest('empty and error states are mutually exclusive', testMutualExclusion);
 })();
