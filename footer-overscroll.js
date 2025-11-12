@@ -59,7 +59,16 @@
       const footerRect = footer.getBoundingClientRect();
       const footerHeight = Math.ceil(footerRect.height || 0);
       const safeArea = safeAreaValue();
-      const tailSpace = scrollElement.scrollHeight - sentinel.offsetTop;
+      const scrollTop = typeof scrollElement.scrollTop === 'number'
+        ? scrollElement.scrollTop
+        : (typeof global.pageYOffset === 'number' ? global.pageYOffset : 0);
+      const sentinelRect = sentinel.getBoundingClientRect ? sentinel.getBoundingClientRect() : null;
+      const rawTop = sentinelRect ? sentinelRect.top + scrollTop : sentinel.offsetTop;
+      const sentinelTop = Number.isFinite(rawTop) ? rawTop : (Number.isFinite(sentinel.offsetTop) ? sentinel.offsetTop : 0);
+      const rectHeight = sentinelRect ? sentinelRect.height : null;
+      const sentinelHeight = Number.isFinite(rectHeight) ? rectHeight : (Number.isFinite(sentinel.offsetHeight) ? sentinel.offsetHeight : 0);
+      const rawTailSpace = scrollElement.scrollHeight - sentinelTop - sentinelHeight;
+      const tailSpace = Math.max(0, Number.isFinite(rawTailSpace) ? rawTailSpace : 0);
       const baseTailSpace = tailSpace - currentOffset;
       const nextOffset = computeRequiredOffset({
         footerHeight,
