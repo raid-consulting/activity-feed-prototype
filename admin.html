@@ -5,7 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Mail Integration Admin</title>
 <style>
-  :root { --radius:14px; --gap:12px; --focus:#6ea4e8; }
+  :root {
+    --radius:14px;
+    --gap:12px;
+    --focus:#6ea4e8;
+    --page-pad:clamp(16px,3vw,28px);
+    --footer-offset:120px;
+  }
   :root, html[data-theme="dark"] {
     --bg:#141b26; --panel:#1a2330; --ink:#f4f7fb; --text:#d7dee7; --muted:#a5b3c5;
     --line:#364353; --card:#1d2735; --card-hover:#243041; --banner:#1b2534;
@@ -23,24 +29,33 @@
   *{box-sizing:border-box} html,body{height:100%}
   body{margin:0;background:var(--bg);color:var(--text);
     font: clamp(15px,1.6vw,17px)/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial;
-    display:grid;place-items:center;padding:clamp(16px,3vw,28px);transition:background .2s,color .2s}
+    display:grid;place-items:center;padding:var(--page-pad);
+    padding-bottom:calc(var(--page-pad) + var(--footer-offset));
+    transition:background .2s,color .2s}
   .frame{width:min(1100px,98vw);background:var(--panel);border:2px solid var(--line);border-radius:18px;padding:clamp(12px,2.2vw,18px);box-shadow:var(--shadow);
     display:grid;gap:clamp(12px,2.2vw,18px)}
   .inner{display:grid;gap:16px;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:18px}
 
   .global-menu{display:flex;align-items:center;justify-content:space-between;background:var(--banner);border:2px solid var(--line);border-radius:12px;padding:12px 14px;flex-wrap:wrap;gap:12px}
   .global-title{display:flex;gap:10px;align-items:center;color:var(--ink);font-weight:800;font-size:clamp(18px,2.2vw,21px)}
-  .global-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
-  .user-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:var(--btn);border:2px solid var(--line);color:var(--ink);font-weight:700;white-space:nowrap}
-  .user-chip .user-chip-label{color:var(--muted);font-size:clamp(12px,1.5vw,13px);font-weight:600}
-  .user-chip .user-chip-name{font-size:clamp(13px,1.6vw,15px)}
-  .link{color:var(--ink);text-decoration:none;font-weight:700;padding:8px 12px;border-radius:10px;border:2px solid var(--line);background:var(--btn)}
+  .global-nav{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end;margin-left:auto}
+  .link{color:var(--ink);text-decoration:none;font-weight:700;padding:8px 12px;border-radius:10px;border:2px solid var(--line);background:var(--btn);display:inline-flex;align-items:center;justify-content:center;min-height:40px}
   .link:hover{background:var(--btn-hover)}
-  .switch{display:inline-flex;align-items:center;gap:10px;margin-left:10px}
+  .link[aria-current="page"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
   .toggle{width:54px;height:30px;border-radius:100px;border:2px solid var(--line);background:var(--btn);position:relative;cursor:pointer}
   .toggle:hover{background:var(--btn-hover)}
+  .toggle:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
   .knob{width:22px;height:22px;border-radius:50%;background:var(--ink);position:absolute;top:50%;transform:translateY(-50%);left:4px;transition:left .2s}
   html[data-theme="light"] .knob{left:28px}
+  .app-footer{position:fixed;left:0;right:0;bottom:0;background:var(--banner);border-top:2px solid var(--line);padding:clamp(12px,2vw,18px) clamp(18px,3vw,28px);display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;z-index:100;box-shadow:0 -6px 18px rgba(6,11,20,.24)}
+  .footer-meta{display:flex;flex-direction:column;gap:2px;color:var(--muted)}
+  .footer-meta strong{color:var(--ink);font-size:clamp(14px,1.7vw,16px)}
+  .footer-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .footer-button{appearance:none;border:2px solid var(--line);background:var(--btn);color:var(--ink);padding:8px 14px;border-radius:10px;font-weight:700;cursor:pointer;min-height:40px;display:inline-flex;align-items:center;justify-content:center}
+  .footer-button:hover{background:var(--btn-hover)}
+  .footer-button[disabled]{opacity:.6;cursor:not-allowed}
+  .footer-theme{display:flex;align-items:center;gap:10px}
+  .footer-theme-label{color:var(--muted);font-weight:600}
 
   .section-banner{display:flex;align-items:center;justify-content:space-between;gap:14px;background:var(--banner);border:2px solid var(--line);border-radius:12px;padding:14px}
   .section-title{display:flex;gap:10px;align-items:center;color:var(--ink);font-weight:800;font-size:clamp(18px,2.4vw,22px);margin:0}
@@ -65,7 +80,7 @@
     <div id="globalMenu"></div>
     <section class="inner">
       <header class="section-banner">
-        <h1 class="section-title"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 6-3.4 10.5H6.4L3 8l9-6z"/></svg> Mail Integration (Outlook)</h1>
+        <h1 class="section-title">Mail Integration (Outlook)</h1>
         <p class="section-subtitle">Manage synced data and review connection health.</p>
       </header>
 
@@ -109,6 +124,8 @@
     </section>
   </main>
 
+  <footer id="appFooter" class="app-footer" role="contentinfo"></footer>
+
 <script src="ai-classifier.js"></script>
 <script>
   const DB_KEY='faux-emails', AUTH_KEY='faux-auth';
@@ -119,35 +136,61 @@
   }
   function isAuthed(){ return !!localStorage.getItem(AUTH_KEY); }
   function getCurrentUser(){ return localStorage.getItem(AUTH_KEY) || ''; }
-  function globalMenuHtml({authed=false, user=''}={}){
-    const links = [
-      `<a class="link" href="index.html">Activity</a>`,
-      `<a class="link" href="ai-review.html">AI review</a>`,
-      `<a class="link" href="admin.html">Admin</a>`
-    ];
-    if(authed){
-      links.push(`<button class="link" type="button" id="logoutBtn">Logout</button>`);
-    }
-    const userBadge = authed && user
-      ? `<div class="user-chip"><span class="user-chip-label">Signed in as</span><span class="user-chip-name">${escapeHtml(user)}</span></div>`
+  function globalMenuHtml({authed=false}={}){
+    const currentPage = (window.location.pathname.split('/').pop() || 'admin.html').toLowerCase();
+    const navLinks = authed
+      ? [
+          {href:'index.html', label:'Activity'},
+          {href:'ai-review.html', label:'AI review'},
+          {href:'admin.html', label:'Admin'}
+        ].map(({href,label}) => {
+          const isCurrent = currentPage === href.toLowerCase();
+          const aria = isCurrent ? ' aria-current="page"' : '';
+          return `<a class="link" href="${href}"${aria}>${label}</a>`;
+        }).join('')
       : '';
+    const nav = authed ? `<nav class="global-nav" aria-label="Primary navigation">${navLinks}</nav>` : '';
     return `
       <div class="global-menu">
         <div class="global-title">${svgPentagon()} Operations Console</div>
-        <div class="global-controls">
-          ${userBadge}
-          ${links.join('')}
-          <div class="switch"><span id="themeLabel">${document.documentElement.getAttribute('data-theme')==='light'?'Light':'Dark'}</span>
-            <button class="toggle" id="themeToggle"><span class="knob"></span></button>
-          </div>
+        ${nav}
+      </div>`;
+  }
+
+  function globalFooterHtml({authed=false, user=''}={}){
+    const displayName = authed && user ? escapeHtml(user) : '—';
+    const themeLabel = document.documentElement.getAttribute('data-theme')==='light' ? 'Light' : 'Dark';
+    const logoutAttrs = authed ? '' : ' disabled aria-disabled="true"';
+    return `
+      <div class="footer-meta" aria-live="polite">
+        <span>Signed in as</span>
+        <strong>${displayName}</strong>
+      </div>
+      <div class="footer-actions">
+        <button class="footer-button" type="button" id="logoutBtn"${logoutAttrs}>Logout</button>
+        <div class="footer-theme">
+          <span class="footer-theme-label" id="themeLabel">${themeLabel}</span>
+          <button class="toggle" type="button" id="themeToggle" aria-pressed="false">
+            <span class="knob"></span>
+          </button>
         </div>
       </div>`;
   }
-  function attachGlobalMenuHandlers(){
-    const label = document.getElementById('themeLabel');
-    if(label){
-      label.textContent = document.documentElement.getAttribute('data-theme')==='light' ? 'Light' : 'Dark';
-    }
+
+  function renderFooter({authed=false, user='', onLogout}={}){
+    const host = document.getElementById('appFooter');
+    if(!host) return;
+    host.innerHTML = globalFooterHtml({authed, user});
+    attachGlobalFooterHandlers(onLogout);
+  }
+
+  function handleLogout(){
+    localStorage.removeItem(AUTH_KEY);
+    window.location.replace('index.html');
+  }
+
+  function attachGlobalFooterHandlers(onLogout){
+    syncThemeControls();
     const toggle = document.getElementById('themeToggle');
     if(toggle){
       toggle.addEventListener('click', () => {
@@ -156,10 +199,13 @@
       });
     }
     const logout = document.getElementById('logoutBtn');
-    if(logout){
+    if(logout && !logout.disabled){
       logout.addEventListener('click', () => {
-        localStorage.removeItem(AUTH_KEY);
-        window.location.href = 'index.html';
+        if(typeof onLogout === 'function'){
+          onLogout();
+        } else {
+          handleLogout();
+        }
       });
     }
   }
@@ -225,13 +271,22 @@
     reassessEmail
   };
   function fmt(ts){return new Date(ts).toLocaleString()}
-  function ensureAuth(){ if(!localStorage.getItem(AUTH_KEY)){ window.location.href='index.html'; } }
   function setTheme(theme){
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('notif-theme', theme);
+    syncThemeControls();
+  }
+  function syncThemeControls(){
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
     const label = document.getElementById('themeLabel');
     if(label){
-      label.textContent = theme==='light' ? 'Light' : 'Dark';
+      label.textContent = currentTheme === 'light' ? 'Light' : 'Dark';
+    }
+    const toggle = document.getElementById('themeToggle');
+    if(toggle){
+      const isLight = currentTheme === 'light';
+      toggle.setAttribute('aria-pressed', isLight ? 'true' : 'false');
+      toggle.setAttribute('aria-label', isLight ? 'Switch to dark theme' : 'Switch to light theme');
     }
   }
   (function initTheme(){
@@ -241,13 +296,17 @@
       setTheme(prefersLight ? 'light' : 'dark');
     }
   })();
-  ensureAuth(); seedDB();
-
+  const authed = isAuthed();
+  const currentUser = authed ? getCurrentUser() : '';
   const globalMenuHost = document.getElementById('globalMenu');
   if(globalMenuHost){
-    globalMenuHost.innerHTML = globalMenuHtml({authed:isAuthed(), user:getCurrentUser()});
-    attachGlobalMenuHandlers();
+    globalMenuHost.innerHTML = globalMenuHtml({authed});
   }
+  renderFooter({authed, user:currentUser, onLogout:authed ? handleLogout : undefined});
+  if(!authed){
+    window.location.replace('index.html');
+  } else {
+  seedDB();
 
   const tbody = document.querySelector('#tbl tbody');
   const listPanel = document.getElementById('listPanel');
@@ -342,6 +401,7 @@
   document.getElementById('reset').onclick = ()=>{ localStorage.removeItem(DB_KEY); seedDB(); render(); showList(); };
   render();
   showList();
+  }
 </script>
 </body>
 </html>
