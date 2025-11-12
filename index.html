@@ -25,17 +25,23 @@
     font: clamp(15px,1.6vw,17px)/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial;
     display:grid;place-items:center;padding:clamp(16px,3vw,28px);transition:background .2s,color .2s}
   .frame{width:min(1100px,98vw);background:var(--panel);border:2px solid var(--line);
-    border-radius:18px;padding:clamp(12px,2.2vw,18px);box-shadow:var(--shadow)}
+    border-radius:18px;padding:clamp(12px,2.2vw,18px);box-shadow:var(--shadow);
+    display:grid;gap:clamp(12px,2.2vw,18px)}
   .inner{display:grid;grid-template-columns:1fr;gap:clamp(12px,2vw,18px);background:var(--panel);
     border:2px solid var(--line);border-radius:14px;padding:clamp(14px,2.2vw,20px);position:relative}
 
-  /* Banner with nav + theme */
-  .banner{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;
+  /* Global navigation */
+  .global-menu{display:flex;align-items:center;justify-content:space-between;
     padding:clamp(10px,1.8vw,14px) clamp(12px,2.2vw,16px);background:var(--banner);
-    border:2px solid var(--line);border-radius:12px}
-  .title{display:flex;align-items:center;gap:12px;font-weight:800;letter-spacing:.2px;
-    font-size:clamp(18px,2.4vw,22px);color:var(--ink)}
-  .nav{display:flex;gap:10px;align-items:center}
+    border:2px solid var(--line);border-radius:12px;flex-wrap:wrap;gap:12px}
+  .global-title{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.2px;
+    font-size:clamp(18px,2.2vw,21px);color:var(--ink)}
+  .global-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+  .user-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;
+    background:var(--btn);border:2px solid var(--line);color:var(--ink);font-weight:700;
+    white-space:nowrap}
+  .user-chip .user-chip-label{color:var(--muted);font-size:clamp(12px,1.5vw,13px);font-weight:600}
+  .user-chip .user-chip-name{font-size:clamp(13px,1.6vw,15px)}
   .link{color:var(--ink);text-decoration:none;font-weight:700;padding:8px 12px;border-radius:10px;border:2px solid var(--line);background:var(--btn);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
   .link:hover{background:var(--btn-hover)}
   .switch{display:inline-flex;align-items:center;gap:10px;margin-left:10px}
@@ -43,6 +49,13 @@
   .toggle:hover{background:var(--btn-hover)}
   .knob{width:22px;height:22px;border-radius:50%;background:var(--ink);position:absolute;top:50%;transform:translateY(-50%);left:4px;transition:left .2s}
   html[data-theme="light"] .knob{left:28px}
+
+  /* Section banner */
+  .section-banner{display:flex;align-items:center;justify-content:space-between;gap:14px;
+    padding:clamp(12px,2vw,16px);background:var(--banner);border:2px solid var(--line);border-radius:12px}
+  .section-title{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.2px;
+    font-size:clamp(18px,2.4vw,22px);color:var(--ink);margin:0}
+  .section-subtitle{margin:0;color:var(--muted);font-size:clamp(13px,1.6vw,15px)}
 
   /* Cards list */
   .stack{display:grid;gap:16px}
@@ -141,7 +154,18 @@
   function svgPentagon(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 6-3.4 10.5H6.4L3 8l9-6z"/></svg>'; }
   function cardChevron(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>'; }
 
-  function bannerHtml({authed=false}={}){
+  function escapeHtml(str=''){
+    const escapeMap = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    };
+    return String(str).replace(/[&<>"']/g, ch => escapeMap[ch]);
+  }
+
+  function globalMenuHtml({authed=false, user=''}={}){
     const navItems = [
       `<a class="link" href="index.html">Activity</a>`,
       `<a class="link" href="admin.html">Admin</a>`
@@ -149,10 +173,14 @@
     if(authed){
       navItems.push(`<button class="link" type="button" id="logoutBtn">Logout</button>`);
     }
+    const userDisplay = authed && user
+      ? `<div class="user-chip" id="currentUser"><span class="user-chip-label">Signed in as</span><span class="user-chip-name">${escapeHtml(user)}</span></div>`
+      : '';
     return `
-      <div class="banner">
-        <div class="title">${svgPentagon()} Activity Feed</div>
-        <div class="nav">
+      <div class="global-menu">
+        <div class="global-title">${svgPentagon()} Operations Console</div>
+        <div class="global-controls">
+          ${userDisplay}
           ${navItems.join('')}
           <div class="switch"><span id="themeLabel">${document.documentElement.getAttribute('data-theme')==='light'?'Light':'Dark'}</span>
             <button class="toggle" id="themeToggle"><span class="knob"></span></button>
@@ -160,7 +188,11 @@
         </div>
       </div>`;
   }
-  function attachBannerToggle(){
+  function attachGlobalMenuHandlers(){
+    const label = document.getElementById('themeLabel');
+    if(label){
+      label.textContent = document.documentElement.getAttribute('data-theme')==='light' ? 'Light' : 'Dark';
+    }
     const toggle = document.getElementById('themeToggle');
     if(!toggle) return;
     toggle.addEventListener('click', () => {
@@ -171,32 +203,42 @@
     if(logout){
       logout.addEventListener('click', () => {
         localStorage.removeItem(AUTH_KEY);
-        renderLogin();
+        if(typeof renderLogin === 'function'){
+          renderLogin();
+        } else {
+          window.location.href = 'index.html';
+        }
       });
     }
   }
 
-  function renderLogin(){
+  function renderFrame({authed=false, user='', content=''}={}){
     const el = document.getElementById('app');
     el.innerHTML = `
-      <section class="inner">
-        <div class="login-wrap card-plain">
-          <h2 style="margin:0 0 6px 0;color:var(--ink)">Sign in</h2>
-          <p class="meta" style="margin:0 0 12px 0">Enter your credentials to continue.</p>
-          <div class="row">
-            <input id="user" class="input" placeholder="Username" autocomplete="username">
-            <input id="pass" class="input" placeholder="Password" type="password" autocomplete="current-password">
-          </div>
-          <div id="err" class="error" style="display:none">Invalid credentials</div>
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px">
-            <div class="switch"><span id="themeLabel">${document.documentElement.getAttribute('data-theme')==='light'?'Light':'Dark'}</span>
-              <button class="toggle" id="themeToggle"><span class="knob"></span></button>
+      ${globalMenuHtml({authed, user})}
+      ${content}`;
+    attachGlobalMenuHandlers();
+  }
+
+  function renderLogin(){
+    renderFrame({
+      authed:false,
+      content:`
+        <section class="inner">
+          <div class="login-wrap card-plain">
+            <h2 style="margin:0 0 6px 0;color:var(--ink)">Sign in</h2>
+            <p class="meta" style="margin:0 0 12px 0">Enter your credentials to continue.</p>
+            <div class="row">
+              <input id="user" class="input" placeholder="Username" autocomplete="username">
+              <input id="pass" class="input" placeholder="Password" type="password" autocomplete="current-password">
             </div>
-            <button class="btn" id="loginBtn">Login</button>
+            <div id="err" class="error" style="display:none">Invalid credentials</div>
+            <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:12px">
+              <button class="btn" id="loginBtn">Login</button>
+            </div>
           </div>
-        </div>
-      </section>`;
-    attachBannerToggle();
+        </section>`
+    });
     document.getElementById('loginBtn').onclick = () => {
       const u = document.getElementById('user').value.trim();
       const p = document.getElementById('pass').value;
@@ -208,6 +250,10 @@
         const e = document.getElementById('err'); e.style.display = 'block';
       }
     };
+  }
+
+  function getCurrentUser(){
+    return localStorage.getItem(AUTH_KEY) || '';
   }
 
   function renderFeed(){
@@ -251,36 +297,42 @@
       </div>`;
     }).join('') || '<p class="meta">No notifications available.</p>';
 
-    document.getElementById('app').innerHTML = `
-      <section class="inner">
-        ${bannerHtml({authed:true})}
-        <div class="feed-content" id="feedContent">
-          <div class="stack" id="cardList">${groupMarkup}</div>
-        </div>
-        <div class="detail-view" id="detailView" aria-hidden="true">
-          <div class="detail-head">
-            <div class="crumbs">
-              <button type="button" id="detailBack">Activity feed</button>
-              <span>/</span>
-              <strong id="detailCrumb">Details</strong>
-            </div>
-            <button class="btn" type="button" id="detailBackBtn">Back to feed</button>
+    const currentUser = getCurrentUser();
+    renderFrame({
+      authed:true,
+      user:currentUser,
+      content:`
+        <section class="inner">
+          <header class="section-banner">
+            <h1 class="section-title">${svgPentagon()} Activity Feed</h1>
+            <p class="section-subtitle">Monitor inbox triage and recent automation updates.</p>
+          </header>
+          <div class="feed-content" id="feedContent">
+            <div class="stack" id="cardList">${groupMarkup}</div>
           </div>
-          <article class="detail" aria-live="polite">
-            <div class="label">Email</div>
-            <h2 id="detailTitle">Select a notification</h2>
-            <p id="detailMeta">Pick an item from the feed to view more information.</p>
-            <p id="detailBody"></p>
-            <div class="actions">
-              <button class="btn" id="detailOpen">Open</button>
-              <button class="btn" id="detailAssign">Assign</button>
-              <button class="btn" id="detailArchive">Archive</button>
+          <div class="detail-view" id="detailView" aria-hidden="true">
+            <div class="detail-head">
+              <div class="crumbs">
+                <button type="button" id="detailBack">Activity feed</button>
+                <span>/</span>
+                <strong id="detailCrumb">Details</strong>
+              </div>
+              <button class="btn" type="button" id="detailBackBtn">Back to feed</button>
             </div>
-          </article>
-        </div>
-      </section>`;
-
-    attachBannerToggle();
+            <article class="detail" aria-live="polite">
+              <div class="label">Email</div>
+              <h2 id="detailTitle">Select a notification</h2>
+              <p id="detailMeta">Pick an item from the feed to view more information.</p>
+              <p id="detailBody"></p>
+              <div class="actions">
+                <button class="btn" id="detailOpen">Open</button>
+                <button class="btn" id="detailAssign">Assign</button>
+                <button class="btn" id="detailArchive">Archive</button>
+              </div>
+            </article>
+          </div>
+        </section>`
+    });
 
     const feedContent = document.getElementById('feedContent');
     const detailView = document.getElementById('detailView');
