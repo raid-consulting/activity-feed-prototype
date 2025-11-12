@@ -43,6 +43,10 @@
   .btn{appearance:none;border:2px solid var(--line);background:var(--btn);color:var(--text);padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer;min-height:44px}
   .btn:hover{background:var(--btn-hover)}
   .detail{background:var(--detail);border:2px solid var(--line);border-radius:12px;padding:14px}
+  .crumbs{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:clamp(13px,1.6vw,15px);margin-bottom:12px}
+  .crumbs strong{color:var(--ink)}
+  .crumbs button{background:none;border:none;color:var(--ink);font-weight:700;cursor:pointer;padding:0;font-size:inherit}
+  .crumbs button:hover{text-decoration:underline}
 </style>
 </head>
 <body>
@@ -62,7 +66,7 @@
         <button class="btn" id="logout">Log out</button>
       </div>
 
-      <div class="detail">
+      <div class="detail" id="listPanel">
         <h3 style="margin:0 0 8px 0;color:var(--ink)">Inbox (test data)</h3>
         <div style="overflow:auto">
           <table id="tbl">
@@ -70,6 +74,17 @@
             <tbody></tbody>
           </table>
         </div>
+      </div>
+
+      <div class="detail" id="detailPanel" hidden>
+        <div class="crumbs">
+          <button type="button" id="backToList">Inbox</button>
+          <span>/</span>
+          <strong id="detailSubject">Details</strong>
+        </div>
+        <h3 id="detailHeading" style="margin:0 0 8px 0;color:var(--ink)">Select an email</h3>
+        <p id="detailMeta">Choose a message from the inbox to review its contents.</p>
+        <p id="detailBody"></p>
       </div>
     </section>
   </main>
@@ -105,6 +120,29 @@
   ensureAuth(); seedDB();
 
   const tbody = document.querySelector('#tbl tbody');
+  const listPanel = document.getElementById('listPanel');
+  const detailPanel = document.getElementById('detailPanel');
+  const detailSubject = document.getElementById('detailSubject');
+  const detailHeading = document.getElementById('detailHeading');
+  const detailMeta = document.getElementById('detailMeta');
+  const detailBody = document.getElementById('detailBody');
+  const backToList = document.getElementById('backToList');
+
+  function showList(){
+    listPanel.hidden = false;
+    detailPanel.hidden = true;
+  }
+  function showDetail(email){
+    detailSubject.textContent = email.subject;
+    detailHeading.textContent = email.subject;
+    detailMeta.innerHTML = `<strong>From:</strong> ${email.from} • <strong>Received:</strong> ${fmt(email.received)} • <strong>Status:</strong> ${email.status}`;
+    detailBody.textContent = email.body;
+    listPanel.hidden = true;
+    detailPanel.hidden = false;
+  }
+
+  backToList.addEventListener('click', showList);
+
   function render(){
     const emails = JSON.parse(localStorage.getItem(DB_KEY)||'[]');
     tbody.innerHTML = emails.map(e => `
@@ -120,22 +158,17 @@
   function viewEmail(id){
     const emails = JSON.parse(localStorage.getItem(DB_KEY)||'[]');
     const e = emails.find(x=>x.id===id); if(!e) return;
-    const viewer = document.createElement('div');
-    viewer.className='detail';
-    viewer.innerHTML = `<h3 style="margin:0 0 8px 0;color:var(--ink)">${e.subject}</h3>
-      <p><strong>From:</strong> ${e.from} • <strong>Received:</strong> ${fmt(e.received)}</p>
-      <p style="margin-top:8px">${e.body}</p>`;
-    document.querySelector('.inner').appendChild(viewer);
-    viewer.scrollIntoView({behavior:'smooth'});
+    showDetail(e);
   }
 
-  document.getElementById('reset').onclick = ()=>{ localStorage.removeItem(DB_KEY); seedDB(); render(); };
+  document.getElementById('reset').onclick = ()=>{ localStorage.removeItem(DB_KEY); seedDB(); render(); showList(); };
   document.getElementById('logout').onclick = ()=>{ localStorage.removeItem('faux-auth'); window.location.href='index.html'; };
   document.getElementById('themeToggle').onclick = ()=>{
     const current = document.documentElement.getAttribute('data-theme')||'dark';
     setTheme(current==='dark' ? 'light' : 'dark');
   };
   render();
+  showList();
 </script>
 </body>
 </html>
