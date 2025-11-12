@@ -97,7 +97,9 @@
 
   .stack{display:grid;gap:16px}
   .group{display:grid;gap:12px}
+  .group-header{display:grid;gap:6px}
   .group-title{font-weight:800;color:var(--ink);font-size:clamp(16px,2vw,19px);display:flex;gap:10px;align-items:center}
+  .group-description{margin:0;color:var(--muted);font-size:clamp(13px,1.6vw,15px)}
   .group-count{font-size:13px;color:var(--muted);font-weight:600}
   .group-cards{display:grid;gap:12px}
 
@@ -112,10 +114,7 @@
   .card-stripe-blue{background:var(--blue)}
   .card-stripe-grey{background:var(--grey)}
   .card-content{display:grid;gap:6px;padding:clamp(12px,2vw,16px);padding-right:clamp(10px,1.8vw,14px)}
-  .card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-  .card-category{display:grid;gap:2px}
-  .card-category-title{color:var(--ink);font-weight:800;font-size:clamp(14px,1.8vw,16px)}
-  .card-category-desc{color:var(--muted);font-size:clamp(12px,1.6vw,13px)}
+  .card-header{display:flex;align-items:flex-start;justify-content:flex-end}
   .title-text{color:var(--ink);font-weight:800;letter-spacing:.2px;font-size:clamp(15px,1.9vw,17px);margin:0}
   .description{color:var(--text);opacity:.9;font-size:clamp(14px,1.8vw,16px);margin:0}
   .meta{color:var(--muted);font-size:clamp(13px,1.6vw,15px)}
@@ -1326,10 +1325,6 @@
             <span class="card-stripe ${stripeClass}" aria-label="${escapeHtml(stripe.title)}"></span>
             <div class="card-content">
               <div class="card-header">
-                <div class="card-category">
-                  <span class="card-category-title">${escapeHtml(stripe.title)}</span>
-                  <span class="card-category-desc">${escapeHtml(stripe.description)}</span>
-                </div>
                 <span class="timestamp">${formatTime(item.received)}</span>
               </div>
               <div class="title-text">${escapeHtml(item.subject)}</div>
@@ -1340,7 +1335,10 @@
           </button>`;
         }).join('');
         return `<div class="group">
-          <div class="group-title">${escapeHtml(presentation.title)} <span class="group-count">${groupItems.length} items</span></div>
+          <div class="group-header">
+            <div class="group-title">${escapeHtml(presentation.title)} <span class="group-count">${groupItems.length} items</span></div>
+            <p class="group-description">${escapeHtml(presentation.description)}</p>
+          </div>
           <div class="group-cards">${cards}</div>
         </div>`;
       }).join('');
