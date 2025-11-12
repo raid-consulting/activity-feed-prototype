@@ -277,7 +277,13 @@
     if(window.AIClassifier){
       emails.forEach(email => {
         const version = email.ai && email.ai.assessor_version;
-        if(!email.ai || version !== window.AIClassifier.VERSION){
+        if(!email.ai){
+          window.AIClassifier.applyAssessment(email);
+          mutated = true;
+        } else if(version === 'manual-override'){
+          email.aiCategory = email.ai.category;
+          email.aiSynopsis = email.ai.notes;
+        } else if(version !== window.AIClassifier.VERSION){
           window.AIClassifier.applyAssessment(email);
           mutated = true;
         } else {
@@ -514,6 +520,10 @@
           const confidence=formatConfidence(ai);
           const metaParts=[`From ${escapeHtml(item.from)}`,`Status: ${escapeHtml(item.status)}`];
           if(confidence){ metaParts.push(`Confidence: ${confidence}`); }
+          if(item.ai && item.ai.assessor_version === 'manual-override'){
+            metaParts.push('Manual override');
+          }
+          return `<button class="card ${accent}" data-id="${item.id}">
           const itemCategory=getCategory(item);
           const stripe=AICategory.getCategoryPresentation(itemCategory);
           return `<button class="card" data-id="${item.id}">
@@ -573,7 +583,9 @@
     detailMeta.innerHTML=`<strong>From:</strong> ${escapeHtml(email.from)} • <strong>Received:</strong> ${formatTime(email.received)} • <strong>Status:</strong> ${escapeHtml(email.status)} • <strong>AI:</strong> ${escapeHtml(presentation.title)} (${category.toUpperCase()} • ${confidence} confidence)`;
     detailBody.textContent=email.body;
     detailSynopsis.textContent=ai.notes || email.aiSynopsis || 'Metadata pending for this message.';
-    detailAiMeta.textContent=`Assessed ${assessed} • Assessor: ${escapeHtml(assessor)} • Confidence: ${confidence}`;
+    const assessorLabel=escapeHtml(assessor);
+    const overrideBanner=assessor==='manual-override' ? ' • Manual override active' : '';
+    detailAiMeta.textContent=`Assessed ${assessed} • Assessor: ${assessorLabel} • Confidence: ${confidence}${overrideBanner}`;
     detailAiRequirements.textContent=`Blockers: ${escapeHtml(blockers)} • Permissions: ${escapeHtml(permissions)} • Context: ${escapeHtml(context)}`;
     detailTag.textContent=`${presentation.title} • ${info.detail}`;
     detailTag.className=`detail-tag ${category}`;

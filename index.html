@@ -183,7 +183,13 @@
     if(window.AIClassifier){
       emails.forEach(email => {
         const originalVersion = email.ai && email.ai.assessor_version;
-        if(!email.ai || originalVersion !== window.AIClassifier.VERSION){
+        if(!email.ai){
+          window.AIClassifier.applyAssessment(email);
+          mutated = true;
+        } else if(originalVersion === 'manual-override'){
+          email.aiCategory = email.ai.category;
+          email.aiSynopsis = email.ai.notes;
+        } else if(originalVersion !== window.AIClassifier.VERSION){
           window.AIClassifier.applyAssessment(email);
           mutated = true;
         } else {
