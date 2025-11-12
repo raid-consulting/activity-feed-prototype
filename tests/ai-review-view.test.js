@@ -394,6 +394,26 @@ async function testErrorWithCache(){
   assert(env.telemetryCalls.some(entry => entry.payload && entry.payload.status === 'degraded'), 'telemetry logs degraded state');
 }
 
+async function testRetryBeforeError(){
+  const items = [createSampleEmail('retry1')];
+  let attempts = 0;
+  const env = await mountAiReview({
+    loader: () => {
+      attempts++;
+      return attempts === 1
+        ? Promise.reject(new Error('transient fault'))
+        : Promise.resolve(items);
+    },
+    seedEmails: items
+  });
+  await settle(env);
+
+  assert(attempts >= 2, 'loader retried at least once');
+  assert.strictEqual(env.elements.errorState.hidden, true, 'error banner hidden after retry success');
+  assert.strictEqual(env.elements.degradedBanner.hidden, true, 'degraded banner hidden after retry success');
+  assert.strictEqual(env.elements.groupContainer.hidden, false, 'list visible after retry success');
+}
+
 async function testMutualExclusion(){
   const emptyEnv = await mountAiReview({ loader: () => Promise.resolve([]), seedEmails: [] });
   await settle(emptyEnv);
@@ -409,5 +429,6 @@ async function testMutualExclusion(){
   await runTest('empty success shows only empty state', testEmptySuccess);
   await runTest('error without cache renders only error', testErrorNoCache);
   await runTest('error with cache falls back to degraded view', testErrorWithCache);
+  await runTest('transient failure retries before error', testRetryBeforeError);
   await runTest('empty and error states are mutually exclusive', testMutualExclusion);
 })();
