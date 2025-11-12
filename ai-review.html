@@ -128,6 +128,12 @@
   .empty-refresh:hover{background:var(--btn-hover)}
   .empty-refresh:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
   .loading{padding:32px;border:2px solid var(--line);border-radius:12px;text-align:center;font-weight:700;color:var(--ink);background:var(--card)}
+  .inline-alert{display:flex;align-items:center;gap:12px;padding:14px 18px;border-radius:12px;background:rgba(231,173,106,.14);border:2px solid var(--amber);color:var(--ink);font-weight:600}
+  .inline-alert__message{flex:1;min-width:0}
+  .inline-alert__actions{display:flex;gap:10px}
+  .inline-alert button{appearance:none;border:2px solid var(--line);background:var(--btn);color:var(--ink);padding:8px 14px;border-radius:999px;font-weight:700;cursor:pointer;min-height:38px}
+  .inline-alert button:hover{background:var(--btn-hover)}
+  .inline-empty{padding:24px;border:2px dashed var(--line);border-radius:12px;text-align:center;color:var(--muted);background:var(--card);font-weight:600}
 
   .detail-view{display:none;grid-template-columns:1fr;gap:16px}
   .detail-view[aria-hidden="false"]{display:grid}
@@ -182,13 +188,20 @@
       </div>
 
       <div id="reviewContent">
+        <div class="inline-alert" id="degradedBanner" hidden role="status" aria-live="polite">
+          <span class="inline-alert__message" id="degradedMessage">Showing cached results while we reconnect…</span>
+          <div class="inline-alert__actions">
+            <button type="button" id="degradedRetry">Retry</button>
+          </div>
+        </div>
         <div class="loading" id="loadingState" role="status">Loading review signals…</div>
         <div class="stack" id="groupContainer" hidden></div>
-        <div class="empty" id="emptyState" hidden>
+        <div class="inline-empty" id="noResultsNotice" hidden role="status" aria-live="polite">No review items match your filters.</div>
+        <div class="empty" id="emptyState" hidden role="region" aria-label="AI review empty state" tabindex="-1">
           <p>No items to review yet.</p>
           <button class="empty-refresh" type="button" id="emptyRefresh">Refresh now</button>
         </div>
-        <div class="error" id="errorState" hidden>
+        <div class="error" id="errorState" hidden role="region" aria-label="AI review error state" tabindex="-1">
           <p>We hit a snag loading review signals.</p>
           <button class="empty-refresh" type="button" id="errorRetry">Try again</button>
         </div>
@@ -442,13 +455,25 @@
     return typeof ai.confidence === 'number' ? `${Math.round(ai.confidence * 100)}%` : null;
   }
 
+  const VIEW_STATES={
+    IDLE:'idle',
+    LOADING:'loading',
+    SUCCESS:'success',
+    EMPTY:'empty',
+    ERROR:'error',
+    DEGRADED:'degraded'
+  };
+
   const state={
     items:[],
+    cachedItems:[],
     filter:'all',
     search:'',
-    loading:true,
+    view:VIEW_STATES.IDLE,
     detailId:null,
-    error:null
+    errorMessage:'',
+    lastView:VIEW_STATES.IDLE,
+    pendingLoad:false
   };
 
   const REFRESH_INTERVAL = window.AutoRefresh ? window.AutoRefresh.DEFAULT_INTERVAL : 15000;
@@ -474,7 +499,26 @@
   const detailReassess=document.getElementById('detailReassess');
   const emptyRefresh=document.getElementById('emptyRefresh');
   const errorRetry=document.getElementById('errorRetry');
+  const degradedBanner=document.getElementById('degradedBanner');
+  const degradedMessage=document.getElementById('degradedMessage');
+  const degradedRetry=document.getElementById('degradedRetry');
+  const noResultsNotice=document.getElementById('noResultsNotice');
   const errorMessage=errorState?errorState.querySelector('p'):null;
+  const DEFAULT_ERROR_MESSAGE='We hit a snag loading review signals.';
+
+  function normalizeItems(items){
+    return Array.isArray(items) ? items.slice().sort((a,b)=>b.received-a.received) : [];
+  }
+
+  function fetchLatestItems(){
+    const loader=(window.aiReviewDataSource && typeof window.aiReviewDataSource.fetch==='function')
+      ? window.aiReviewDataSource.fetch
+      : ()=>getEmails();
+    return Promise.resolve().then(()=>loader());
+  }
+
+  state.cachedItems=normalizeItems(getEmails());
+  state.items=state.cachedItems.slice();
 
   function getCategory(item){
     const raw = item && item.ai ? item.ai.category : null;
@@ -513,24 +557,6 @@
   }
 
   function renderList(){
-    if(state.loading){
-      loadingState.hidden=false;
-      groupContainer.hidden=true;
-      emptyState.hidden=true;
-      if(errorState){ errorState.hidden=true; }
-      return;
-    }
-    loadingState.hidden=true;
-    if(state.error){
-      groupContainer.hidden=true;
-      emptyState.hidden=true;
-      if(errorState){
-        if(errorMessage){ errorMessage.textContent=state.error; }
-        errorState.hidden=false;
-      }
-      return;
-    }
-    if(errorState){ errorState.hidden=true; }
     const filtered=state.items.filter(item=>{
       const category=getCategory(item);
       if(state.filter!=='all' && category!==state.filter) return false;
@@ -538,21 +564,15 @@
     });
 
     if(!filtered.length){
-      groupContainer.hidden=true;
-      emptyState.hidden=false;
-      return;
+      groupContainer.innerHTML='';
+      return false;
     }
-
-    emptyState.hidden=true;
-    groupContainer.hidden=false;
 
     const groups=['green','blue','red','grey'];
     const markup=groups
-      .filter(groupKey=>state.filter==='all' ? filtered.some(item=>getCategory(item)===groupKey) : filtered.some(item=>getCategory(item)===groupKey))
       .map(groupKey=>{
         const groupItems=filtered.filter(item=>getCategory(item)===groupKey);
         if(!groupItems.length) return '';
-        const info=CATEGORY_INFO[groupKey] || CATEGORY_INFO.grey;
         const presentation=AICategory.getCategoryPresentation(groupKey);
         const cards=groupItems.map(item=>{
           const ai=item.ai||{};
@@ -592,18 +612,76 @@
     groupContainer.querySelectorAll('.card[data-id]').forEach(btn=>{
       btn.addEventListener('click',()=>openDetail(btn.getAttribute('data-id')));
     });
+    return true;
   }
 
   function render(){
-    if(!state.loading && !state.error){
+    const view=state.view;
+    const shouldRenderList=view===VIEW_STATES.SUCCESS || view===VIEW_STATES.DEGRADED;
+    let hasVisible=false;
+
+    if(view!==VIEW_STATES.LOADING){
       updateCounts(state.items);
     }
-    renderList();
+
+    if(shouldRenderList){
+      hasVisible=renderList();
+    } else {
+      groupContainer.innerHTML='';
+    }
+
+    if(loadingState){
+      loadingState.hidden=view!==VIEW_STATES.LOADING;
+    }
+
+    if(groupContainer){
+      groupContainer.hidden=!shouldRenderList || !hasVisible;
+    }
+
+    if(noResultsNotice){
+      const showNoResults=shouldRenderList && state.items.length>0 && !hasVisible;
+      noResultsNotice.hidden=!showNoResults;
+    }
+
+    if(emptyState){
+      const showEmpty=view===VIEW_STATES.EMPTY;
+      emptyState.hidden=!showEmpty;
+      if(showEmpty && state.lastView!==VIEW_STATES.EMPTY && typeof emptyState.focus==='function'){
+        emptyState.focus();
+      }
+    }
+
+    if(errorState){
+      const showError=view===VIEW_STATES.ERROR;
+      errorState.hidden=!showError;
+      if(showError && errorMessage){
+        errorMessage.textContent=state.errorMessage || DEFAULT_ERROR_MESSAGE;
+      }
+      if(showError && state.lastView!==VIEW_STATES.ERROR && typeof errorState.focus==='function'){
+        errorState.focus();
+      }
+    }
+
+    if(degradedBanner){
+      const showDegraded=view===VIEW_STATES.DEGRADED;
+      degradedBanner.hidden=!showDegraded;
+      if(showDegraded && degradedMessage){
+        degradedMessage.textContent=state.errorMessage || 'Showing cached results while we reconnect…';
+      }
+    }
+
+    if(view===VIEW_STATES.ERROR || view===VIEW_STATES.EMPTY){
+      closeDetail();
+    }
+
+    state.lastView=view;
   }
 
-  function refreshItems(){
-    const data=getEmails();
-    state.items=Array.isArray(data) ? data.slice().sort((a,b)=>b.received-a.received) : [];
+  function setItems(items,{cache=false}={}){
+    state.items=normalizeItems(items);
+    if(cache){
+      state.cachedItems=state.items.slice();
+    }
   }
 
   function renderDetail(email,{scrollIntoView=true}={}){
@@ -641,16 +719,25 @@
   }
 
   function load(){
-    state.loading=true;
-    state.error=null;
-    renderList();
+    if(state.pendingLoad) return;
+    state.pendingLoad=true;
+    state.view=VIEW_STATES.LOADING;
+    state.errorMessage='';
+    render();
     const start=typeof performance!=='undefined' && performance.now ? performance.now() : Date.now();
     if(activeLoadTimer){
       clearTimeout(activeLoadTimer);
       activeLoadTimer=null;
     }
     let settled=false;
-    const finish=(status,details={})=>{
+    const finalize=(status,details={})=>{
+      if(settled) return;
+      settled=true;
+      if(activeLoadTimer){
+        clearTimeout(activeLoadTimer);
+        activeLoadTimer=null;
+      }
+      state.pendingLoad=false;
       const end=typeof performance!=='undefined' && performance.now ? performance.now() : Date.now();
       const duration=Math.round(end-start);
       try {
@@ -659,54 +746,61 @@
         /* ignore telemetry errors */
       }
     };
-    const handleSuccess=()=>{
+    const handleSuccess=items=>{
       if(settled) return;
-      settled=true;
-      if(activeLoadTimer){
-        clearTimeout(activeLoadTimer);
-        activeLoadTimer=null;
-      }
-      state.loading=false;
-      finish('success',{itemCount:state.items.length});
-      syncAndRender();
+      setItems(Array.isArray(items)?items:[],{cache:true});
+      const nextView=state.items.length?VIEW_STATES.SUCCESS:VIEW_STATES.EMPTY;
+      state.view=nextView;
+      state.errorMessage='';
+      finalize(nextView,{itemCount:state.items.length});
+      render();
       ensureAutoRefresh();
     };
-    const handleError=(status,message)=>{
+    const handleFailure=message=>{
       if(settled) return;
-      settled=true;
-      if(activeLoadTimer){
-        clearTimeout(activeLoadTimer);
-        activeLoadTimer=null;
+      const errorMsg=message || DEFAULT_ERROR_MESSAGE;
+      state.errorMessage=errorMsg;
+      if(state.cachedItems.length){
+        state.items=state.cachedItems.slice();
+        state.view=VIEW_STATES.DEGRADED;
+      } else {
+        state.items=[];
+        state.view=VIEW_STATES.ERROR;
       }
-      state.loading=false;
-      state.error=message;
-      finish(status,{message});
+      finalize(state.view,{message:errorMsg,itemCount:state.items.length});
       render();
+      ensureAutoRefresh();
     };
-    Promise.resolve()
-      .then(()=>{
-        refreshItems();
-      })
+    fetchLatestItems()
       .then(handleSuccess)
-      .catch(err=>{
-        const message=err && err.message ? err.message : 'We hit a snag loading review signals.';
-        handleError('error',message);
-      });
+      .catch(err=>handleFailure(err && err.message ? err.message : DEFAULT_ERROR_MESSAGE));
     activeLoadTimer=setTimeout(()=>{
-      handleError('timeout','We hit a snag loading review signals.');
+      if(settled) return;
+      handleFailure(DEFAULT_ERROR_MESSAGE);
     },LOAD_TIMEOUT_MS);
   }
 
   function syncAndRender({skipScroll=false}={}){
-    state.loading=false;
     try {
-      refreshItems();
-      state.error=null;
+      const data=getEmails();
+      setItems(data,{cache:true});
+      if(state.view!==VIEW_STATES.DEGRADED){
+        state.view=state.items.length?VIEW_STATES.SUCCESS:VIEW_STATES.EMPTY;
+        state.errorMessage='';
+      }
     } catch (err){
-      state.error=err && err.message ? err.message : 'We hit a snag loading review signals.';
+      const message=err && err.message ? err.message : DEFAULT_ERROR_MESSAGE;
+      state.errorMessage=message;
+      if(state.cachedItems.length){
+        state.items=state.cachedItems.slice();
+        state.view=VIEW_STATES.DEGRADED;
+      } else {
+        state.items=[];
+        state.view=VIEW_STATES.ERROR;
+      }
     }
     render();
-    if(state.error){
+    if(state.view===VIEW_STATES.ERROR){
       return;
     }
     if(state.detailId){
@@ -722,7 +816,7 @@
   function ensureAutoRefresh(){
     if(!window.AutoRefresh || autoRefreshController) return;
     autoRefreshController=window.AutoRefresh.createAutoRefresh({
-      refresh:()=>syncAndRender({skipScroll:true}),
+      refresh:()=>load(),
       intervalMs:REFRESH_INTERVAL,
       immediate:false,
       autoStart:false
@@ -736,7 +830,7 @@
       const pressed=btn.getAttribute('data-filter')===value;
       btn.setAttribute('aria-pressed', pressed?'true':'false');
     });
-    renderList();
+    render();
   }
 
   filterButtons.forEach(btn=>{
@@ -748,7 +842,7 @@
 
   searchInput.addEventListener('input',()=>{
     state.search=searchInput.value.trim().toLowerCase();
-    renderList();
+    render();
   });
 
   function openDetail(id, options={}){
@@ -770,10 +864,13 @@
   document.getElementById('detailBackBtn').addEventListener('click',closeDetail);
 
   if(emptyRefresh){
-    emptyRefresh.addEventListener('click',()=>syncAndRender({skipScroll:true}));
+    emptyRefresh.addEventListener('click',()=>load());
   }
   if(errorRetry){
     errorRetry.addEventListener('click',()=>load());
+  }
+  if(degradedRetry){
+    degradedRetry.addEventListener('click',()=>load());
   }
 
   if(detailReassess){
