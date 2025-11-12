@@ -476,7 +476,16 @@
     detailId:null,
     errorMessage:'',
     lastView:VIEW_STATES.IDLE,
-    pendingLoad:false
+    pendingLoad:false,
+    loadOutcome:{
+      phase:'idle',
+      itemCount:0,
+      usingCache:false,
+      retries:0,
+      durationMs:0,
+      networkWasOffline:false,
+      timestamp:new Date().toISOString()
+    }
   };
 
   function logInfoEvent(event,payload){
@@ -489,25 +498,26 @@
     }
   }
 
-  let lastStateLog='';
+  let lastStatePhase='';
+  let lastStatePayload='';
   let lastBannerLog='';
   let lastConflictLog='';
 
-  function logAiReviewState(){
+  function logStateSnapshot(){
     const payload={
-      view:state.view,
-      lastView:state.lastView,
-      itemCount:state.items.length,
-      cachedCount:state.cachedItems.length,
-      filter:state.filter,
-      search:state.search,
-      detailOpen:!!state.detailId,
-      pendingLoad:state.pendingLoad
+      phase:state.loadOutcome.phase,
+      itemCount:state.loadOutcome.itemCount,
+      usingCache:state.loadOutcome.usingCache,
+      retries:state.loadOutcome.retries,
+      durationMs:state.loadOutcome.durationMs,
+      networkWasOffline:state.loadOutcome.networkWasOffline,
+      timestamp:state.loadOutcome.timestamp
     };
-    const fingerprint=JSON.stringify(payload);
-    if(fingerprint===lastStateLog) return;
-    lastStateLog=fingerprint;
-    logInfoEvent('ai_review_state', payload);
+    const fingerprint=`${payload.phase}|${JSON.stringify(payload)}`;
+    if(payload.phase===lastStatePhase && fingerprint===lastStatePayload) return;
+    lastStatePhase=payload.phase;
+    lastStatePayload=fingerprint;
+    logInfoEvent('state', payload);
   }
 
   function logBannerDecision(payload){
@@ -519,18 +529,51 @@
 
   function logBannerConflict(active){
     const payload={
-      view:state.view,
-      lastView:state.lastView,
-      itemCount:state.items.length,
-      cachedCount:state.cachedItems.length,
-      filter:state.filter,
-      search:state.search,
-      active
+      active,
+      snapshot:{
+        phase:state.loadOutcome.phase,
+        itemCount:state.loadOutcome.itemCount,
+        usingCache:state.loadOutcome.usingCache,
+        retries:state.loadOutcome.retries,
+        networkWasOffline:state.loadOutcome.networkWasOffline
+      }
     };
     const fingerprint=JSON.stringify(payload);
     if(fingerprint===lastConflictLog) return;
     lastConflictLog=fingerprint;
     logInfoEvent('banner_conflict', payload);
+  }
+
+  function updateLoadOutcome(updates={}){
+    const next={
+      ...state.loadOutcome,
+      ...updates,
+      timestamp:new Date().toISOString()
+    };
+    const phaseChanged=next.phase!==state.loadOutcome.phase;
+    state.loadOutcome=next;
+    if(phaseChanged){
+      logStateSnapshot();
+    }
+  }
+
+  function navigatorOnline(){
+    if(typeof navigator==='undefined' || typeof navigator.onLine!=='boolean') return true;
+    return navigator.onLine;
+  }
+
+  function viewToPhase(view){
+    switch(view){
+      case VIEW_STATES.ERROR:
+      case VIEW_STATES.DEGRADED:
+        return 'error';
+      case VIEW_STATES.LOADING:
+        return 'loading';
+      case VIEW_STATES.IDLE:
+        return 'idle';
+      default:
+        return 'success';
+    }
   }
 
   const REFRESH_INTERVAL = window.AutoRefresh ? window.AutoRefresh.DEFAULT_INTERVAL : 15000;
@@ -613,14 +656,17 @@
     });
   }
 
-  function renderList(){
-    const filtered=state.items.filter(item=>{
+  function getFilteredItems(source){
+    const list=Array.isArray(source)?source:state.items;
+    return list.filter(item=>{
       const category=getCategory(item);
       if(state.filter!=='all' && category!==state.filter) return false;
       return matchesSearch(item, state.search);
     });
+  }
 
-    if(!filtered.length){
+  function renderList(filtered){
+    if(!filtered || !filtered.length){
       groupContainer.innerHTML='';
       return false;
     }
@@ -673,53 +719,69 @@
   }
 
   function render(){
-    const view=state.view;
-    const shouldRenderList=view===VIEW_STATES.SUCCESS || view===VIEW_STATES.DEGRADED;
-    let hasVisible=false;
+    const phase=state.loadOutcome.phase;
+    const usingCache=state.loadOutcome.usingCache;
+    const networkWasOffline=state.loadOutcome.networkWasOffline;
+    const isLoading=phase==='loading';
+    const shouldRenderList=(phase==='success' && state.items.length>0)
+      || (phase==='error' && usingCache && state.items.length>0);
 
-    logAiReviewState();
-
-    if(view!==VIEW_STATES.LOADING){
+    if(!isLoading){
       updateCounts(state.items);
     }
 
-    if(shouldRenderList){
-      hasVisible=renderList();
-    } else {
-      groupContainer.innerHTML='';
-    }
+    const filteredItems=shouldRenderList ? getFilteredItems(state.items) : [];
+    const hasVisible=shouldRenderList && filteredItems.length>0;
 
-    const showLoading=view===VIEW_STATES.LOADING;
-    const showEmpty=view===VIEW_STATES.EMPTY;
-    const showError=view===VIEW_STATES.ERROR;
-    const showDegraded=view===VIEW_STATES.DEGRADED && hasVisible;
+    const showLoading=isLoading;
+    const showEmpty=(phase==='success' && state.loadOutcome.itemCount===0);
+    const showCached=(phase==='error' && usingCache && networkWasOffline && state.items.length>0);
+    const showError=(phase==='error' && !(usingCache && networkWasOffline));
     const showNoResults=shouldRenderList && state.items.length>0 && !hasVisible;
 
-    const bannerPayload={
-      view,
-      lastView:state.lastView,
-      itemCount:state.items.length,
-      cachedCount:state.cachedItems.length,
-      filter:state.filter,
-      search:state.search,
-      hasVisible,
-      banners:{
-        loading:showLoading,
-        degraded:showDegraded,
-        empty:showEmpty,
-        error:showError,
-        noResults:showNoResults
-      }
+    const bannerFlags={
+      info_empty:showEmpty,
+      warn_cached:showCached,
+      error_failed:showError
     };
-    bannerPayload.active=Object.entries(bannerPayload.banners)
+    const activeBanners=Object.entries(bannerFlags)
       .filter(([,value])=>!!value)
       .map(([key])=>key);
-    logBannerDecision(bannerPayload);
+    let chosen='none';
+    let reason='no_banner';
+    if(showLoading){
+      chosen='none';
+      reason='loading';
+    } else if(activeBanners.length){
+      chosen=activeBanners[0];
+      if(chosen==='info_empty'){ reason='success_empty'; }
+      else if(chosen==='warn_cached'){ reason=networkWasOffline?'cache_offline':'cache_used'; }
+      else if(chosen==='error_failed'){ reason='error_final'; }
+    } else if(phase==='success' && state.loadOutcome.itemCount>0){
+      reason='success_items';
+    }
 
-    const conflicting=bannerPayload.active.filter(key=>key==='degraded'||key==='empty'||key==='error');
-    if(conflicting.length>1){
-      logBannerConflict(conflicting);
-    } else if(conflicting.length===0){
+    logBannerDecision({
+      chosen,
+      reason,
+      snapshot:{
+        phase:state.loadOutcome.phase,
+        itemCount:state.loadOutcome.itemCount,
+        usingCache,
+        retries:state.loadOutcome.retries,
+        durationMs:state.loadOutcome.durationMs,
+        networkWasOffline,
+        filter:state.filter,
+        search:state.search,
+        totalItems:state.items.length,
+        filteredCount:filteredItems.length,
+        detailOpen:!!state.detailId
+      }
+    });
+
+    if(activeBanners.length>1){
+      logBannerConflict(activeBanners);
+    } else if(activeBanners.length===0){
       lastConflictLog='';
     }
 
@@ -728,7 +790,15 @@
     }
 
     if(groupContainer){
-      groupContainer.hidden=!shouldRenderList || !hasVisible;
+      if(hasVisible){
+        renderList(filteredItems);
+        groupContainer.hidden=false;
+      } else {
+        if(!showLoading){
+          groupContainer.innerHTML='';
+        }
+        groupContainer.hidden=true;
+      }
     }
 
     if(noResultsNotice){
@@ -753,17 +823,17 @@
     }
 
     if(degradedBanner){
-      degradedBanner.hidden=!showDegraded;
-      if(showDegraded && degradedMessage){
+      degradedBanner.hidden=!showCached;
+      if(showCached && degradedMessage){
         degradedMessage.textContent=state.errorMessage || 'Showing cached results while we reconnect…';
       }
     }
 
-    if(view===VIEW_STATES.ERROR || view===VIEW_STATES.EMPTY){
+    if((state.view===VIEW_STATES.ERROR || state.view===VIEW_STATES.EMPTY) && (showError || showEmpty)){
       closeDetail();
     }
 
-    state.lastView=view;
+    state.lastView=state.view;
   }
 
   function setItems(items,{cache=false}={}){
@@ -812,51 +882,92 @@
     state.pendingLoad=true;
     state.view=VIEW_STATES.LOADING;
     state.errorMessage='';
+    updateLoadOutcome({
+      phase:'loading',
+      usingCache:false,
+      retries:0,
+      itemCount:state.items.length,
+      durationMs:0,
+      networkWasOffline:!navigatorOnline()
+    });
     render();
     const start=typeof performance!=='undefined' && performance.now ? performance.now() : Date.now();
     if(activeLoadTimer){
       clearTimeout(activeLoadTimer);
       activeLoadTimer=null;
     }
-    let settled=false;
-    const finalize=(status,details={})=>{
-      if(settled) return;
-      settled=true;
+    const attempt={
+      retries:0,
+      settled:false,
+      networkWasOffline:!navigatorOnline()
+    };
+    const markOffline=()=>{ attempt.networkWasOffline=true; };
+    if(typeof window!=='undefined' && window.addEventListener){
+      window.addEventListener('offline', markOffline);
+    }
+    const cleanup=()=>{
+      if(typeof window!=='undefined' && window.removeEventListener){
+        window.removeEventListener('offline', markOffline);
+      }
+    };
+    const finalize=({phase,usingCache,itemCount,errorMessage})=>{
+      if(attempt.settled) return;
+      attempt.settled=true;
+      cleanup();
       if(activeLoadTimer){
         clearTimeout(activeLoadTimer);
         activeLoadTimer=null;
       }
       state.pendingLoad=false;
       const end=typeof performance!=='undefined' && performance.now ? performance.now() : Date.now();
-      const duration=Math.round(end-start);
+      const duration=Math.max(1, Math.round(end-start));
+      if(errorMessage){
+        state.errorMessage=errorMessage;
+      }
+      updateLoadOutcome({
+        phase,
+        usingCache:!!usingCache,
+        itemCount,
+        retries:attempt.retries,
+        durationMs:duration,
+        networkWasOffline:attempt.networkWasOffline || !navigatorOnline()
+      });
       try {
-        telemetry.log('ai_review_load',{status,durationMs:duration,...details});
+        telemetry.log('ai_review_load',{
+          phase,
+          itemCount,
+          durationMs:duration,
+          retries:attempt.retries,
+          usingCache:!!usingCache
+        });
       } catch (err) {
         /* ignore telemetry errors */
       }
     };
     const handleSuccess=items=>{
-      if(settled) return;
+      if(attempt.settled) return;
       setItems(Array.isArray(items)?items:[],{cache:true});
       const nextView=state.items.length?VIEW_STATES.SUCCESS:VIEW_STATES.EMPTY;
       state.view=nextView;
       state.errorMessage='';
-      finalize(nextView,{itemCount:state.items.length});
+      finalize({phase:'success',usingCache:false,itemCount:state.items.length});
       render();
       ensureAutoRefresh();
     };
     const handleFailure=message=>{
-      if(settled) return;
+      if(attempt.settled) return;
       const errorMsg=message || DEFAULT_ERROR_MESSAGE;
       state.errorMessage=errorMsg;
+      let usingCache=false;
       if(state.cachedItems.length){
         state.items=state.cachedItems.slice();
         state.view=VIEW_STATES.DEGRADED;
+        usingCache=true;
       } else {
         state.items=[];
         state.view=VIEW_STATES.ERROR;
       }
-      finalize(state.view,{message:errorMsg,itemCount:state.items.length});
+      finalize({phase:'error',usingCache,itemCount:state.items.length,errorMessage:errorMsg});
       render();
       ensureAutoRefresh();
     };
@@ -864,7 +975,7 @@
       .then(handleSuccess)
       .catch(err=>handleFailure(err && err.message ? err.message : DEFAULT_ERROR_MESSAGE));
     activeLoadTimer=setTimeout(()=>{
-      if(settled) return;
+      if(attempt.settled) return;
       handleFailure(DEFAULT_ERROR_MESSAGE);
     },LOAD_TIMEOUT_MS);
   }
@@ -887,6 +998,20 @@
         state.items=[];
         state.view=VIEW_STATES.ERROR;
       }
+    }
+    const nextPhase=viewToPhase(state.view);
+    const updates={};
+    if(state.loadOutcome.itemCount!==state.items.length){
+      updates.itemCount=state.items.length;
+    }
+    if(nextPhase!==state.loadOutcome.phase){
+      updates.phase=nextPhase;
+      updates.usingCache=nextPhase==='error' ? state.view===VIEW_STATES.DEGRADED : false;
+    } else if(nextPhase==='success' && state.loadOutcome.usingCache){
+      updates.usingCache=false;
+    }
+    if(Object.keys(updates).length){
+      updateLoadOutcome(updates);
     }
     render();
     if(state.view===VIEW_STATES.ERROR){
