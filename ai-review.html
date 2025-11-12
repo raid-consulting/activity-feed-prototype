@@ -126,6 +126,7 @@
   .empty{padding:32px;border:2px dashed var(--line);border-radius:12px;text-align:center;color:var(--muted);background:var(--card);display:grid;gap:12px;justify-items:center}
   .empty[hidden]{display:none!important}
   .error{padding:32px;border:2px dashed var(--red);border-radius:12px;text-align:center;color:var(--ink);background:rgba(234,124,118,.1);display:grid;gap:12px;justify-items:center}
+  .error[hidden]{display:none!important}
   .error p{margin:0;font-weight:700}
   .empty-refresh{appearance:none;border:2px solid var(--line);background:var(--btn);color:var(--ink);padding:10px 16px;border-radius:999px;font-weight:700;cursor:pointer}
   .empty-refresh:hover{background:var(--btn-hover)}
@@ -250,6 +251,7 @@
 <script>
   const DB_KEY='faux-emails', AUTH_KEY='faux-auth';
   const LOAD_TIMEOUT_MS=10000;
+  const DEFAULT_ERROR_MESSAGE='We hit a snag loading review signals.';
 
   const telemetry=(window.telemetry && typeof window.telemetry.log==='function')
     ? window.telemetry
@@ -577,6 +579,241 @@
     }
   }
 
+  function normalizeErrorText(value){
+    return String(value||'').replace(/\s+/g,' ').trim();
+  }
+
+  function nodeIsInShadowRoot(node){
+    if(!node || typeof node.getRootNode!=='function') return false;
+    try {
+      const root=node.getRootNode();
+      return typeof ShadowRoot!=='undefined' && root instanceof ShadowRoot;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function computeNodePath(node){
+    if(!node) return 'unknown';
+    const segments=[];
+    let current=node;
+    while(current){
+      if(current.nodeType===11 && current.host){
+        segments.unshift('::shadow');
+        current=current.host;
+        continue;
+      }
+      if(current.nodeType!==1){
+        break;
+      }
+      let segment=current.tagName?current.tagName.toLowerCase():'node';
+      if(current.id){
+        segment+=`#${current.id}`;
+        segments.unshift(segment);
+        break;
+      }
+      const dataKind=current.getAttribute && current.getAttribute('data-banner-kind');
+      if(dataKind){
+        segment+=`[data-banner-kind="${dataKind}"]`;
+      }
+      const dataBanner=current.getAttribute && current.getAttribute('data-banner');
+      if(dataBanner && !dataKind){
+        segment+=`[data-banner="${dataBanner}"]`;
+      }
+      const className=(current.className && typeof current.className==='string')?current.className.trim():'';
+      if(className){
+        const firstClass=className.split(/\s+/).filter(Boolean)[0];
+        if(firstClass){
+          segment+=`.${firstClass}`;
+        }
+      }
+      if(current.parentNode && current.parentNode.children){
+        const siblings=Array.from(current.parentNode.children).filter(child=>child.tagName===current.tagName);
+        if(siblings.length>1){
+          const index=siblings.indexOf(current);
+          segment+=`:nth-of-type(${index+1})`;
+        }
+      }
+      segments.unshift(segment);
+      if(current===document.documentElement){
+        segments.unshift('html');
+        break;
+      }
+      current=current.parentNode || null;
+    }
+    if(segments.length && segments[0]!=='html' && document && document.documentElement){
+      segments.unshift('html');
+    }
+    return segments.join(' > ');
+  }
+
+  function computeNodeRect(node){
+    const fallback={x:null,y:null,w:null,h:null};
+    if(!node || typeof node.getBoundingClientRect!=='function') return fallback;
+    try {
+      const rect=node.getBoundingClientRect();
+      return {
+        x:Math.round(rect.x*100)/100,
+        y:Math.round(rect.y*100)/100,
+        w:Math.round(rect.width*100)/100,
+        h:Math.round(rect.height*100)/100
+      };
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  function computeNodeStyles(node){
+    const styles={display:null,visibility:null,opacity:null,zIndex:null,pointerEvents:null,position:null};
+    if(!node) return styles;
+    try {
+      if(window && typeof window.getComputedStyle==='function'){
+        const computed=window.getComputedStyle(node);
+        styles.display=computed.display;
+        styles.visibility=computed.visibility;
+        styles.opacity=computed.opacity;
+        styles.zIndex=computed.zIndex;
+        styles.pointerEvents=computed.pointerEvents;
+        styles.position=computed.position;
+      }
+    } catch (_) {
+      /* noop */
+    }
+    return styles;
+  }
+
+  function describeErrorNode(node,idx){
+    if(!node){
+      return {
+        idx,
+        path:'missing',
+        textSample:'',
+        inShadowRoot:false,
+        rect:{x:null,y:null,w:null,h:null},
+        styles:{display:null,visibility:null,opacity:null,zIndex:null,pointerEvents:null,position:null},
+        attrs:{id:null,class:null,hidden:null,'aria-hidden':null,inert:null,'data-banner':null,'data-ai-review-guarded':null}
+      };
+    }
+    const text=normalizeErrorText(node.textContent||'');
+    const rect=computeNodeRect(node);
+    const styles=computeNodeStyles(node);
+    const attrs={};
+    try { attrs.id=node.id||null; } catch (_) { attrs.id=null; }
+    try { attrs.class=(node.getAttribute && node.getAttribute('class'))||null; } catch (_) { attrs.class=null; }
+    try { attrs.hidden=node.hasAttribute && node.hasAttribute('hidden'); } catch (_) { attrs.hidden=null; }
+    try { attrs['aria-hidden']=node.getAttribute && node.getAttribute('aria-hidden'); } catch (_) { attrs['aria-hidden']=null; }
+    try { attrs.inert=node.hasAttribute && node.hasAttribute('inert'); } catch (_) { attrs.inert=null; }
+    try { attrs['data-banner']=node.getAttribute && node.getAttribute('data-banner'); } catch (_) { attrs['data-banner']=null; }
+    try { attrs['data-ai-review-guarded']=node.getAttribute && node.getAttribute('data-ai-review-guarded'); } catch (_) { attrs['data-ai-review-guarded']=null; }
+    return {
+      idx,
+      path:computeNodePath(node),
+      textSample:text.slice(0,80),
+      inShadowRoot:nodeIsInShadowRoot(node),
+      rect,
+      styles,
+      attrs
+    };
+  }
+
+  function scanForErrorTextNodes(){
+    const matches=[];
+    const nodes=[];
+    const visited=new Set();
+    const targetText=normalizeErrorText(DEFAULT_ERROR_MESSAGE);
+    function visit(node){
+      if(!node || visited.has(node)) return;
+      visited.add(node);
+      if(node.nodeType===1){
+        const normalized=normalizeErrorText(node.textContent||'');
+        if(normalized.includes(targetText)){
+          nodes.push(node);
+          matches.push(describeErrorNode(node,matches.length));
+        }
+        if(node.shadowRoot){
+          visit(node.shadowRoot);
+        }
+        const children=node.children?Array.from(node.children):[];
+        children.forEach(child=>visit(child));
+      } else if(node.nodeType===11){
+        const childNodes=node.childNodes?Array.from(node.childNodes):[];
+        childNodes.forEach(child=>visit(child));
+      }
+    }
+    try {
+      visit(document.documentElement);
+    } catch (_) {
+      /* noop */
+    }
+    return { log:{foundCount:matches.length,nodes:matches}, nodes };
+  }
+
+  function isNodeVisiblyRendered(node){
+    if(!node || node.nodeType!==1) return false;
+    try {
+      if(node.hasAttribute && node.hasAttribute('hidden')) return false;
+      if(typeof node.hidden==='boolean' && node.hidden) return false;
+    } catch (_) {
+      /* noop */
+    }
+    let styles;
+    try {
+      styles=window && typeof window.getComputedStyle==='function' ? window.getComputedStyle(node) : null;
+    } catch (_) {
+      styles=null;
+    }
+    if(styles){
+      if(styles.display==='none') return false;
+      if(styles.visibility==='hidden' || styles.visibility==='collapse') return false;
+      const opacityValue=parseFloat(styles.opacity);
+      if(!Number.isNaN(opacityValue) && opacityValue<=0) return false;
+    }
+    return true;
+  }
+
+  function guardErrorDuplicate(node){
+    if(!node || node.nodeType!==1) return;
+    try { node.setAttribute('aria-hidden','true'); } catch (_) { /* noop */ }
+    try { node.setAttribute('data-ai-review-guarded','error'); } catch (_) { /* noop */ }
+    if(node.style){
+      try { node.style.display='none'; } catch (_) { /* noop */ }
+    }
+  }
+
+  function evaluateHiddenOverride(node){
+    const result={hiddenAttr:false,effectiveHidden:true,reason:'ok'};
+    if(!node || node.nodeType!==1) return result;
+    try {
+      if(typeof node.hasAttribute==='function'){
+        result.hiddenAttr=node.hasAttribute('hidden');
+      } else if('hidden' in node){
+        result.hiddenAttr=!!node.hidden;
+      }
+    } catch (_) {
+      result.hiddenAttr=false;
+    }
+    if(!result.hiddenAttr){
+      result.effectiveHidden=false;
+      return result;
+    }
+    try {
+      if(window && typeof window.getComputedStyle==='function'){
+        const computed=window.getComputedStyle(node);
+        const display=computed.display;
+        const visibility=computed.visibility;
+        if(display && display!=='none' || visibility && visibility!=='hidden'){
+          result.effectiveHidden=false;
+        }
+      }
+    } catch (_) {
+      result.effectiveHidden=false;
+    }
+    if(!result.effectiveHidden){
+      result.reason='css_override';
+    }
+    return result;
+  }
+
   function logEmptyBanner(tag,payload){
     try {
       if(window && window.console && typeof window.console.info==='function'){
@@ -812,96 +1049,122 @@
     return { shouldShow, reason, state:stateSnapshot };
   }
 
-  function collectErrorBannerNodes(){
-    const selectors=['[data-banner-kind="error"]','#errorState'];
-    const seen=new Set();
-    const nodes=[];
-    selectors.forEach(sel=>{
-      const list=Array.from(document.querySelectorAll(sel));
-      list.forEach(node=>{
-        if(!node) return;
-        if(seen.has(node)) return;
-        seen.add(node);
-        nodes.push(node);
-      });
-    });
-    return nodes;
-  }
-
   function applyErrorBannerVisibility({decision,message,messageNode}){
-    const nodes=collectErrorBannerNodes();
+    const target=errorState||null;
     logErrorBanner('decision',{shouldShow:decision.shouldShow,reason:decision.reason,state:decision.state});
-    if(nodes.length>1){
+
+    const scanBefore=scanForErrorTextNodes();
+    logErrorBanner('dom_scan_before',scanBefore.log);
+
+    const targetBefore=describeErrorNode(target,0);
+    logErrorBanner('target_dom_before',targetBefore);
+
+    const duplicateEntries=scanBefore.log.nodes
+      .map((info,index)=>({info,index,node:scanBefore.nodes[index]}))
+      .filter(({node})=>{
+        if(!node) return false;
+        if(node===target) return false;
+        if(target && typeof target.contains==='function' && target.contains(node)) return false;
+        if(target && typeof node.contains==='function' && node.contains(target)) return false;
+        return true;
+      });
+
+    if(duplicateEntries.length){
       logErrorBanner('multiple_nodes',{
-        count:nodes.length,
-        nodes:nodes.map((node,index)=>describeBannerNode(node,index))
+        count:duplicateEntries.length,
+        nodes:duplicateEntries.map(entry=>entry.info.path)
       });
     }
-    const primary=nodes[0]||null;
-    const before=snapshotBannerNode(primary);
-    logErrorBanner('dom_before',before);
-    nodes.forEach((node,index)=>{
-      if(!node) return;
-      const showNode=decision.shouldShow && node===primary;
+
+    duplicateEntries.forEach(({node})=>guardErrorDuplicate(node));
+
+    if(target){
       try {
-        if(showNode){
-          node.hidden=false;
-          if(typeof node.removeAttribute==='function'){
-            node.removeAttribute('hidden');
-            node.setAttribute('aria-hidden','false');
-          } else if(node.attributes){
-            delete node.attributes.hidden;
-            node.attributes['aria-hidden']='false';
+        if(decision.shouldShow){
+          target.hidden=false;
+          if(typeof target.removeAttribute==='function'){
+            target.removeAttribute('hidden');
+            target.setAttribute('aria-hidden','false');
+            target.removeAttribute('data-ai-review-guarded');
           }
-          if(typeof node.setAttribute==='function'){
-            node.setAttribute('data-banner-visible','true');
-          } else if(node.attributes){
-            node.attributes['data-banner-visible']='true';
+          if(target.style){
+            try { target.style.removeProperty('display'); } catch (_) { /* noop */ }
           }
-          setInert(node,false);
-          let target=messageNode;
-          if(!target && node && typeof node.querySelector==='function'){
-            try { target=node.querySelector('p'); }
-            catch (_) { target=null; }
+          setInert(target,false);
+          if(typeof target.setAttribute==='function'){
+            target.setAttribute('data-banner-visible','true');
           }
-          if(target && message){
-            target.textContent=message;
+          const textNode=messageNode || (typeof target.querySelector==='function' ? target.querySelector('p') : null);
+          if(textNode && message){
+            try { textNode.textContent=message; } catch (_) { /* noop */ }
           }
         } else {
-          if(typeof node.setAttribute==='function'){
-            node.setAttribute('hidden','');
-            node.setAttribute('aria-hidden','true');
-            node.removeAttribute('data-banner-visible');
-          } else if(node.attributes){
-            node.attributes.hidden='';
-            node.attributes['aria-hidden']='true';
-            delete node.attributes['data-banner-visible'];
+          if(typeof target.setAttribute==='function'){
+            target.setAttribute('hidden','');
+            target.setAttribute('aria-hidden','true');
+            target.removeAttribute('data-banner-visible');
           }
-          node.hidden=true;
-          setInert(node,true);
-          if(index>0){
-            node.hidden=true;
+          target.hidden=true;
+          setInert(target,true);
+          if(target.style){
+            try { target.style.removeProperty('display'); } catch (_) { /* noop */ }
           }
         }
       } catch (_) {
         /* noop */
       }
-    });
-    const after=snapshotBannerNode(primary);
-    logErrorBanner('dom_after',after);
-    const computedValue=after.computedDisplay;
-    const computedUnknown=computedValue==='n/a';
-    const visibleAfter=after.exists && !after.hiddenAttr && (computedUnknown || computedValue!=='none');
-    const mismatch=!computedUnknown && decision.shouldShow!==visibleAfter;
-    if(mismatch){
-      logErrorBanner('conflict',{
-        reason:decision.shouldShow?'hidden_when_should_show':'visible_when_should_hide',
-        snapshots:{before,after}
-      });
     }
+
+    let cssCheck=evaluateHiddenOverride(target);
+    if(!decision.shouldShow && cssCheck.hiddenAttr && !cssCheck.effectiveHidden){
+      if(target && target.style){
+        try { target.style.display='none'; } catch (_) { /* noop */ }
+      }
+      cssCheck.reason='css_override';
+    }
+    logErrorBanner('css_override_check',cssCheck);
+
+    const targetAfter=describeErrorNode(target,0);
+    logErrorBanner('target_dom_after',targetAfter);
+
+    const scanAfter=scanForErrorTextNodes();
+    logErrorBanner('dom_scan_after',scanAfter.log);
+
+    if(!decision.shouldShow){
+      const survivors=scanAfter.log.nodes
+        .map((info,index)=>({info,node:scanAfter.nodes[index]}))
+        .filter(({node})=>{
+          if(!node) return false;
+          if(node===target) return isNodeVisiblyRendered(node);
+          if(target){
+            if(typeof target.contains==='function' && target.contains(node)){
+              return isNodeVisiblyRendered(node);
+            }
+            if(typeof node.contains==='function' && node.contains(target)){
+              return false;
+            }
+          }
+          return isNodeVisiblyRendered(node);
+        });
+      if(survivors.length){
+        logErrorBanner('conflict',{
+          reason:'visible_when_should_hide',
+          survivors:survivors.map(({info})=>info)
+        });
+        survivors.forEach(({node})=>{
+          if(!node) return;
+          if(node!==target && !(target && typeof target.contains==='function' && target.contains(node)) && !(target && typeof node.contains==='function' && node.contains(target))){
+            guardErrorDuplicate(node);
+          } else if(target && node===target && target.style){
+            try { target.style.display='none'; } catch (_) { /* noop */ }
+          }
+        });
+      }
+    }
+
     return {
-      shouldShow:decision.shouldShow && !!primary,
-      primaryNode:decision.shouldShow && primary ? primary : null
+      shouldShow:decision.shouldShow && !!target,
+      primaryNode:decision.shouldShow && target ? target : null
     };
   }
 
@@ -968,7 +1231,6 @@
   const degradedRetry=document.getElementById('degradedRetry');
   const noResultsNotice=document.getElementById('noResultsNotice');
   const errorMessage=errorState?errorState.querySelector('p'):null;
-  const DEFAULT_ERROR_MESSAGE='We hit a snag loading review signals.';
 
   function normalizeItems(items){
     return Array.isArray(items) ? items.slice().sort((a,b)=>b.received-a.received) : [];
