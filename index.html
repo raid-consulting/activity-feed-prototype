@@ -27,8 +27,7 @@
   .frame{width:min(1100px,98vw);background:var(--panel);border:2px solid var(--line);
     border-radius:18px;padding:clamp(12px,2.2vw,18px);box-shadow:var(--shadow)}
   .inner{display:grid;grid-template-columns:1fr;gap:clamp(12px,2vw,18px);background:var(--panel);
-    border:2px solid var(--line);border-radius:14px;padding:clamp(14px,2.2vw,20px)}
-  @media (min-width:900px){ .inner{grid-template-columns:1fr 1.1fr;align-items:start} }
+    border:2px solid var(--line);border-radius:14px;padding:clamp(14px,2.2vw,20px);position:relative}
 
   /* Banner with nav + theme */
   .banner{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;
@@ -37,7 +36,7 @@
   .title{display:flex;align-items:center;gap:12px;font-weight:800;letter-spacing:.2px;
     font-size:clamp(18px,2.4vw,22px);color:var(--ink)}
   .nav{display:flex;gap:10px;align-items:center}
-  .link{color:var(--ink);text-decoration:none;font-weight:700;padding:8px 12px;border-radius:10px;border:2px solid var(--line);background:var(--btn)}
+  .link{color:var(--ink);text-decoration:none;font-weight:700;padding:8px 12px;border-radius:10px;border:2px solid var(--line);background:var(--btn);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
   .link:hover{background:var(--btn-hover)}
   .switch{display:inline-flex;align-items:center;gap:10px;margin-left:10px}
   .toggle{width:54px;height:30px;border-radius:100px;border:2px solid var(--line);background:var(--btn);position:relative;cursor:pointer}
@@ -46,20 +45,30 @@
   html[data-theme="light"] .knob{left:28px}
 
   /* Cards list */
-  .stack{display:grid;gap:12px}
-  .card{display:grid;grid-template-columns:44px 1fr 24px;gap:12px;align-items:center;
+  .stack{display:grid;gap:16px}
+  .group{display:grid;gap:12px}
+  .group-title{font-weight:800;color:var(--ink);font-size:clamp(16px,2vw,19px)}
+  .group-cards{display:grid;gap:12px}
+  .card{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start;
     padding:clamp(12px,2vw,16px);background:var(--card);border-radius:var(--radius);border:2px solid var(--line);
-    cursor:pointer;transition:background .15s,transform .05s,border-color .2s;text-align:left; min-height:86px}
+    cursor:pointer;transition:background .15s,transform .05s,border-color .2s;text-align:left;min-height:132px}
   .card:hover{background:var(--card-hover);transform:translateY(-1px)}
   .card:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
-  .glyph{width:42px;height:42px;display:grid;place-items:center}
-  .title-text{color:var(--ink);font-weight:800;letter-spacing:.2px;font-size:clamp(15px,1.9vw,17px);margin:0 0 4px 0}
+  .card-content{display:grid;gap:6px}
+  .card-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .title-text{color:var(--ink);font-weight:800;letter-spacing:.2px;font-size:clamp(15px,1.9vw,17px);margin:0}
+  .description{color:var(--text);opacity:.9;font-size:clamp(14px,1.8vw,16px);margin:0}
   .meta{color:var(--muted);font-size:clamp(13px,1.6vw,15px)}
-  .chev{opacity:.9}
-  .accent-red{border-left:10px solid var(--red)} .accent-green{border-left:10px solid var(--green)}
-  .accent-blue{border-left:10px solid var(--blue)} .accent-amber{border-left:10px solid var(--amber)}
-  .accent-crimson{border-left:10px solid var(--crimson)} .accent-muted{border-left:10px solid var(--accent-muted)}
-  .category{background:var(--card)}
+  .chev{opacity:.9;align-self:center}
+  .badge{display:inline-flex;align-items:center;gap:6px;font-size:clamp(12px,1.5vw,13px);font-weight:700;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.08);color:var(--ink);border:1px solid var(--line)}
+  .badge-urgent{background:rgba(255,94,94,.18);color:var(--ink);border-color:rgba(255,94,94,.45)}
+  .timestamp{margin-left:auto;color:var(--muted);font-size:clamp(12px,1.5vw,13px)}
+  .card.accent-red{box-shadow:inset 4px 0 0 var(--red)}
+  .card.accent-green{box-shadow:inset 4px 0 0 var(--green)}
+  .card.accent-blue{box-shadow:inset 4px 0 0 var(--blue)}
+  .card.accent-amber{box-shadow:inset 4px 0 0 var(--amber)}
+  .card.accent-crimson{box-shadow:inset 4px 0 0 var(--crimson)}
+  .card.is-urgent{box-shadow:0 0 0 2px rgba(255,122,102,.55), inset 4px 0 0 var(--crimson);border-color:rgba(255,122,102,.6)}
 
   /* Details: only one mode visible at a time */
   .detail{background:var(--detail);border:2px solid var(--line);border-radius:12px;padding:clamp(14px,2.2vw,20px);min-height:160px}
@@ -71,9 +80,19 @@
     padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer;min-height:44px}
   .btn:hover{background:var(--btn-hover)}
 
+  .detail-view{display:none;grid-column:1/-1;gap:16px}
+  .detail-view[aria-hidden="false"]{display:grid}
+  .detail-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+  .crumbs{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:clamp(13px,1.6vw,15px)}
+  .crumbs strong{color:var(--ink)}
+  .crumbs button{background:none;border:none;color:var(--ink);font-weight:700;cursor:pointer;padding:0;font-size:inherit}
+  .crumbs button:hover{text-decoration:underline}
+
+  .feed-content[hidden]{display:none !important}
+
   /* Desktop aside visible, mobile inline visible */
   .aside{display:none}
-  @media (min-width:900px){ .aside{display:block} .inline-detail{display:none !important} }
+  @media (min-width:900px){ .aside{display:none} .inline-detail{display:none !important} }
   @media (max-width:899px){ .aside{display:none} .inline-detail{display:block} }
 
   /* Login */
@@ -122,13 +141,19 @@
   function svgPentagon(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 6-3.4 10.5H6.4L3 8l9-6z"/></svg>'; }
   function cardChevron(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>'; }
 
-  function bannerHtml(){
+  function bannerHtml({authed=false}={}){
+    const navItems = [
+      `<a class="link" href="index.html">Activity</a>`,
+      `<a class="link" href="admin.html">Admin</a>`
+    ];
+    if(authed){
+      navItems.push(`<button class="link" type="button" id="logoutBtn">Logout</button>`);
+    }
     return `
       <div class="banner">
         <div class="title">${svgPentagon()} Activity Feed</div>
         <div class="nav">
-          <a class="link" href="index.html">Activity</a>
-          <a class="link" href="admin.html">Admin</a>
+          ${navItems.join('')}
           <div class="switch"><span id="themeLabel">${document.documentElement.getAttribute('data-theme')==='light'?'Light':'Dark'}</span>
             <button class="toggle" id="themeToggle"><span class="knob"></span></button>
           </div>
@@ -142,13 +167,19 @@
       const current = document.documentElement.getAttribute('data-theme') || 'dark';
       setTheme(current === 'dark' ? 'light' : 'dark');
     });
+    const logout = document.getElementById('logoutBtn');
+    if(logout){
+      logout.addEventListener('click', () => {
+        localStorage.removeItem(AUTH_KEY);
+        renderLogin();
+      });
+    }
   }
 
   function renderLogin(){
     const el = document.getElementById('app');
     el.innerHTML = `
       <section class="inner">
-        ${bannerHtml()}
         <div class="login-wrap card-plain">
           <h2 style="margin:0 0 6px 0;color:var(--ink)">Sign in</h2>
           <p class="meta" style="margin:0 0 12px 0">Enter your credentials to continue.</p>
@@ -157,7 +188,10 @@
             <input id="pass" class="input" placeholder="Password" type="password" autocomplete="current-password">
           </div>
           <div id="err" class="error" style="display:none">Invalid credentials</div>
-          <div style="display:flex;gap:10px;margin-top:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px">
+            <div class="switch"><span id="themeLabel">${document.documentElement.getAttribute('data-theme')==='light'?'Light':'Dark'}</span>
+              <button class="toggle" id="themeToggle"><span class="knob"></span></button>
+            </div>
             <button class="btn" id="loginBtn">Login</button>
           </div>
         </div>
@@ -179,101 +213,109 @@
   function renderFeed(){
     if(!isAuthed()){ renderLogin(); return; }
     const emails = getEmails();
-    const map = {
-      'manual': {id:'ai-cannot-help', title:'AI cannot help this issue yet', accent:'accent-red', icon:'<svg viewBox=\'0 0 24 24\' fill=\'none\' stroke-width=\'2\' class=\'icon-red\'><circle cx=\'12\' cy=\'12\' r=\'9\'/></svg>'},
-      'draft': {id:'draft-ready', title:'Draft ready for approval', accent:'accent-green', icon:'<svg viewBox=\'0 0 24 24\' fill=\'none\' stroke-width=\'2\' class=\'icon-green\'><rect x=\'3\' y=\'5\' width=\'18\' height=\'14\' rx=\'2\'/><path d=\'M3 7l9 6 9-6\'/></svg>'},
-      'needs_context': {id:'help-ai-solve', title:'Help AI solve this task', accent:'accent-blue', icon:'<svg viewBox=\'0 0 24 24\' fill=\'none\' stroke-width=\'2\' class=\'icon-blue\'><path d=\'M12 4v16M6 10l6-6 6 6\'/></svg>'},
-      'info': {id:'general-info', title:'General information', accent:'accent-amber', icon:'<svg viewBox=\'0 0 24 24\' fill=\'none\' stroke-width=\'2\' class=\'icon-amber\'><path d=\'M12 3l8 9-8 9-8-9 8-9z\'/></svg>'},
-      'urgent': {id:'urgent-payment', title:'Urgent: payment deadline', accent:'accent-crimson', icon:'<svg viewBox=\'0 0 24 24\' fill=\'none\' stroke-width=\'2\' class=\'icon-crimson\'><path d=\'M12 3l10 18H2L12 3z\'/><path d=\'M12 9v5\'/><circle cx=\'12\' cy=\'17\' r=\'1.4\'/></svg>'}
+    const statusInfo = {
+      'urgent': {badge:'Urgent', badgeClass:'badge-urgent', accent:'accent-crimson'},
+      'manual': {badge:'Manual review', badgeClass:'', accent:'accent-red'},
+      'needs_context': {badge:'Needs context', badgeClass:'', accent:'accent-blue'},
+      'draft': {badge:'Draft ready', badgeClass:'', accent:'accent-green'},
+      'info': {badge:'FYI', badgeClass:'', accent:'accent-amber'}
     };
-    const categoryCard = `
-      <button class="card category accent-muted" data-kind="category">
-        <span class="glyph">${svgPentagon()}</span>
-        <div><div class="title-text">Notifications</div>
-        <div class="meta">Overview of system updates and tasks</div></div>
-        <span class="chev">${cardChevron()}</span>
-      </button>`;
-
-    const cards = emails.map(e => {
-      const m = map[e.status] || map['info'];
-      return `<div class="card-wrap">
-        <button class="card ${m.accent}" data-email="${e.id}" data-kind="${m.id}">
-          <span class="glyph">${m.icon}</span>
-          <div>
-            <div class="title-text">${m.title}</div>
-            <div class="meta">${e.subject}</div>
+    const groups = [
+      {title:'Urgent', statuses:['urgent']},
+      {title:'Needs your attention', statuses:['manual','needs_context']},
+      {title:'Follow ups', statuses:['draft']},
+      {title:'Recent updates', statuses:['info']}
+    ];
+    const truncate = (text)=> text.length>160 ? text.slice(0,157)+'…' : text;
+    const formatTime = (ts)=> new Date(ts).toLocaleString();
+    const groupMarkup = groups.map(group => {
+      const items = emails.filter(e => group.statuses.includes(e.status)).sort((a,b)=>b.received-a.received);
+      if(!items.length) return '';
+      const cards = items.map(e => {
+        const info = statusInfo[e.status] || statusInfo.info;
+        return `<button class="card ${info.accent} ${e.status==='urgent'?'is-urgent':''}" data-email="${e.id}">
+          <div class="card-content">
+            <div class="card-header">
+              <span class="badge ${info.badgeClass}">${info.badge}</span>
+              <span class="timestamp">${formatTime(e.received)}</span>
+            </div>
+            <div class="title-text">${e.subject}</div>
+            <p class="description">${truncate(e.body)}</p>
           </div>
           <span class="chev">${cardChevron()}</span>
-        </button>
-        <div class="inline-detail" id="inline-${e.id}" hidden></div>
+        </button>`;
+      }).join('');
+      return `<div class="group">
+        <div class="group-title">${group.title}</div>
+        <div class="group-cards">${cards}</div>
       </div>`;
-    }).join('');
+    }).join('') || '<p class="meta">No notifications available.</p>';
 
     document.getElementById('app').innerHTML = `
       <section class="inner">
-        ${bannerHtml()}
-        <div class="stack" id="cardList">${categoryCard}${cards}</div>
-        <aside class="detail aside" id="detailAside" aria-live="polite">
-          <div class="label">Details</div>
-          <h2>Select a notification</h2>
-          <p>The selected item will appear here with relevant actions.</p>
-          <div class="actions">
-            <button class="btn" disabled>Open</button>
-            <button class="btn" disabled>Assign</button>
-            <button class="btn" disabled>Archive</button>
+        ${bannerHtml({authed:true})}
+        <div class="feed-content" id="feedContent">
+          <div class="stack" id="cardList">${groupMarkup}</div>
+        </div>
+        <div class="detail-view" id="detailView" aria-hidden="true">
+          <div class="detail-head">
+            <div class="crumbs">
+              <button type="button" id="detailBack">Activity feed</button>
+              <span>/</span>
+              <strong id="detailCrumb">Details</strong>
+            </div>
+            <button class="btn" type="button" id="detailBackBtn">Back to feed</button>
           </div>
-        </aside>
+          <article class="detail" aria-live="polite">
+            <div class="label">Email</div>
+            <h2 id="detailTitle">Select a notification</h2>
+            <p id="detailMeta">Pick an item from the feed to view more information.</p>
+            <p id="detailBody"></p>
+            <div class="actions">
+              <button class="btn" id="detailOpen">Open</button>
+              <button class="btn" id="detailAssign">Assign</button>
+              <button class="btn" id="detailArchive">Archive</button>
+            </div>
+          </article>
+        </div>
       </section>`;
 
     attachBannerToggle();
 
-    // Click behavior decides SINGLE render target based on screen size
-    const isDesktop = () => window.matchMedia('(min-width: 900px)').matches;
+    const feedContent = document.getElementById('feedContent');
+    const detailView = document.getElementById('detailView');
+    const detailTitle = document.getElementById('detailTitle');
+    const detailMeta = document.getElementById('detailMeta');
+    const detailBody = document.getElementById('detailBody');
+    const detailCrumb = document.getElementById('detailCrumb');
 
-    function showDetails(email, inlineEl){
-      if(!email) return;
-      const content = `
-        <div class="label">Email</div>
-        <h2>${email.subject}</h2>
-        <p><strong>From:</strong> ${email.from} • <strong>Received:</strong> ${new Date(email.received).toLocaleString()}</p>
-        <p style="margin-top:8px">${email.body}</p>
-        <div class="actions" style="margin-top:10px">
-          <button class="btn">Open</button>
-          <button class="btn">Assign</button>
-          <button class="btn">Archive</button>
-        </div>`;
+    const showDetail = (email) => {
+      detailTitle.textContent = email.subject;
+      detailMeta.innerHTML = `<strong>From:</strong> ${email.from} • <strong>Received:</strong> ${formatTime(email.received)}`;
+      detailBody.textContent = email.body;
+      detailCrumb.textContent = email.subject;
+      feedContent.hidden = true;
+      detailView.setAttribute('aria-hidden', 'false');
+      detailView.scrollIntoView({behavior:'smooth', block:'start'});
+    };
 
-      if(isDesktop()){
-        const aside = document.getElementById('detailAside');
-        aside.querySelector('h2').textContent = email.subject;
-        aside.querySelector('p').innerHTML = `<strong>From:</strong> ${email.from} • <strong>Received:</strong> ${new Date(email.received).toLocaleString()}<br>${email.body}`;
-      } else {
-        // Mobile: render ONLY inline; ensure aside stays hidden by CSS
-        document.querySelectorAll('.inline-detail').forEach(d => d.hidden = true);
-        inlineEl.className = 'detail inline-detail';
-        inlineEl.innerHTML = content;
-        inlineEl.hidden = false;
-        inlineEl.scrollIntoView({behavior:'smooth', block:'nearest'});
-      }
-    }
+    const hideDetail = () => {
+      feedContent.hidden = false;
+      detailView.setAttribute('aria-hidden', 'true');
+    };
+
+    document.getElementById('detailBack').addEventListener('click', hideDetail);
+    document.getElementById('detailBackBtn').addEventListener('click', hideDetail);
 
     const emailsById = Object.fromEntries(emails.map(e => [e.id, e]));
     document.querySelectorAll('.card[data-email]').forEach(btn => {
       btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-email');
-        showDetails(emailsById[id], document.getElementById('inline-'+id));
+        const email = emailsById[id];
+        if(email){
+          showDetail(email);
+        }
       });
-    });
-
-    // Re-select current item on resize to switch modes gracefully
-    let currentId = null;
-    document.querySelectorAll('.card[data-email]').forEach(btn => {
-      btn.addEventListener('click', () => currentId = btn.getAttribute('data-email'));
-    });
-    window.addEventListener('resize', () => {
-      if(!currentId) return;
-      const el = document.getElementById('inline-'+currentId);
-      showDetails(emailsById[currentId], el);
     });
   }
 
