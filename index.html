@@ -11,19 +11,20 @@
     --focus:#6ea4e8;
     --page-pad:clamp(16px,3vw,28px);
     --footer-offset:120px;
+    --card-stripe:clamp(6px,1vw,10px);
   }
   :root, html[data-theme="dark"] {
     --bg:#141b26; --panel:#1a2330; --ink:#f4f7fb; --text:#d7dee7; --muted:#a5b3c5;
     --line:#364353; --card:#1d2735; --card-hover:#243041; --banner:#1b2534;
     --detail:#202b3b; --btn:#232f3f; --btn-hover:#2a3749; --accent-muted:#93a5bb;
-    --red:#ea7c76; --green:#5ec49d; --blue:#78aeea; --amber:#e7ad6a; --crimson:#ed8a7d;
+    --red:#ea7c76; --green:#5ec49d; --blue:#78aeea; --amber:#e7ad6a; --crimson:#ed8a7d; --grey:#8a97ab;
     --shadow:0 6px 24px rgba(6,11,20,.32);
   }
   html[data-theme="light"] {
     --bg:#f2f4f7; --panel:#ffffff; --ink:#1e2936; --text:#2e3a4c; --muted:#647184;
     --line:#d0d7e2; --card:#ffffff; --card-hover:#f5f7fa; --banner:#f1f3f7;
     --detail:#f7f9fc; --btn:#eceff5; --btn-hover:#e1e5ed; --accent-muted:#7b889b;
-    --red:#c6615b; --green:#3c8f6b; --blue:#3a7bd5; --amber:#c38b44; --crimson:#c46f63;
+    --red:#c6615b; --green:#3c8f6b; --blue:#3a7bd5; --amber:#c38b44; --crimson:#c46f63; --grey:#6b778a;
     --shadow:0 4px 18px rgba(15,23,42,.08); --focus:#3a7bd5;
   }
   *{box-sizing:border-box} html,body{height:100%}
@@ -78,26 +79,26 @@
   .group{display:grid;gap:12px}
   .group-title{font-weight:800;color:var(--ink);font-size:clamp(16px,2vw,19px)}
   .group-cards{display:grid;gap:12px}
-  .card{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start;
-    padding:clamp(12px,2vw,16px);background:var(--card);border-radius:var(--radius);border:2px solid var(--line);
-    cursor:pointer;transition:background .15s,transform .05s,border-color .2s;text-align:left;min-height:132px}
+  .card{display:grid;grid-template-columns:var(--card-stripe) 1fr auto;gap:0;align-items:stretch;
+    padding:0;background:var(--card);border-radius:var(--radius);border:2px solid var(--line);
+    cursor:pointer;transition:background .15s,transform .05s,border-color .2s;text-align:left;min-height:132px;overflow:hidden}
   .card:hover{background:var(--card-hover);transform:translateY(-1px)}
   .card:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
-  .card-content{display:grid;gap:6px}
+  .card-stripe{width:var(--card-stripe);min-width:var(--card-stripe);background:var(--grey);align-self:stretch}
+  .card-stripe-green{background:var(--green)}
+  .card-stripe-red{background:var(--red)}
+  .card-stripe-blue{background:var(--blue)}
+  .card-stripe-grey{background:var(--grey)}
+  .card-content{display:grid;gap:6px;padding:clamp(12px,2vw,16px);padding-right:clamp(10px,1.8vw,14px)}
   .card-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
   .title-text{color:var(--ink);font-weight:800;letter-spacing:.2px;font-size:clamp(15px,1.9vw,17px);margin:0}
   .description{color:var(--text);opacity:.9;font-size:clamp(14px,1.8vw,16px);margin:0}
   .meta{color:var(--muted);font-size:clamp(13px,1.6vw,15px)}
-  .chev{opacity:.9;align-self:center}
+  .chev{opacity:.9;align-self:center;padding:0 clamp(12px,2vw,16px);display:flex;align-items:center;justify-content:center}
   .badge{display:inline-flex;align-items:center;gap:6px;font-size:clamp(12px,1.5vw,13px);font-weight:700;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.08);color:var(--ink);border:1px solid var(--line)}
   .badge-urgent{background:rgba(255,94,94,.18);color:var(--ink);border-color:rgba(255,94,94,.45)}
   .timestamp{margin-left:auto;color:var(--muted);font-size:clamp(12px,1.5vw,13px)}
-  .card.accent-red{box-shadow:inset 4px 0 0 var(--red)}
-  .card.accent-green{box-shadow:inset 4px 0 0 var(--green)}
-  .card.accent-blue{box-shadow:inset 4px 0 0 var(--blue)}
-  .card.accent-amber{box-shadow:inset 4px 0 0 var(--amber)}
-  .card.accent-crimson{box-shadow:inset 4px 0 0 var(--crimson)}
-  .card.is-urgent{box-shadow:0 0 0 2px rgba(255,122,102,.55), inset 4px 0 0 var(--crimson);border-color:rgba(255,122,102,.6)}
+  .card.is-urgent{box-shadow:0 0 0 2px rgba(255,122,102,.55);border-color:rgba(255,122,102,.6)}
 
   /* Details: only one mode visible at a time */
   .detail{background:var(--detail);border:2px solid var(--line);border-radius:12px;padding:clamp(14px,2.2vw,20px);min-height:160px}
@@ -139,10 +140,16 @@
 
 <script src="refresh-utils.js"></script>
 <script src="ai-classifier.js"></script>
+<script src="ai-category-constants.js"></script>
 <script>
   const DB_KEY = 'faux-emails';
   const AUTH_KEY = 'faux-auth';
   const REFRESH_INTERVAL = window.AutoRefresh ? window.AutoRefresh.DEFAULT_INTERVAL : 15000;
+  const AICategory = window.AICategory || {
+    AI_CATEGORY_COPY: {},
+    normalizeCategory: () => 'grey',
+    getCategoryPresentation: () => ({ key: 'grey', title: 'Unassessed', description: 'Awaiting AI review.', stripeClass: 'card-stripe-grey', ariaLabel: 'Unassessed' })
+  };
 
   function seedDB(){
     if(localStorage.getItem(DB_KEY)) return;
@@ -380,11 +387,11 @@
     if(!isAuthed()){ renderLogin(); return; }
     disposeAutoRefresh();
     const statusInfo = {
-      'urgent': {badge:'Urgent', badgeClass:'badge-urgent', accent:'accent-crimson'},
-      'manual': {badge:'Manual review', badgeClass:'', accent:'accent-red'},
-      'needs_context': {badge:'Needs context', badgeClass:'', accent:'accent-blue'},
-      'draft': {badge:'Draft ready', badgeClass:'', accent:'accent-green'},
-      'info': {badge:'FYI', badgeClass:'', accent:'accent-amber'}
+      'urgent': {badge:'Urgent', badgeClass:'badge-urgent'},
+      'manual': {badge:'Manual review', badgeClass:''},
+      'needs_context': {badge:'Needs context', badgeClass:''},
+      'draft': {badge:'Draft ready', badgeClass:''},
+      'info': {badge:'FYI', badgeClass:''}
     };
     const groups = [
       {title:'Urgent', statuses:['urgent']},
@@ -448,7 +455,11 @@
         if(!items.length) return '';
         const cards = items.map(e => {
           const info = statusInfo[e.status] || statusInfo.info;
-          return `<button class="card ${info.accent} ${e.status==='urgent'?'is-urgent':''}" data-email="${e.id}">
+          const categoryKey = AICategory.normalizeCategory(e.ai && e.ai.category || e.aiCategory);
+          const stripe = AICategory.getCategoryPresentation(categoryKey);
+          const urgentClass = e.status==='urgent' ? ' is-urgent' : '';
+          return `<button class="card${urgentClass}" data-email="${e.id}">
+            <span class="card-stripe ${stripe.stripeClass}" aria-label="${escapeHtml(stripe.title)}"></span>
             <div class="card-content">
               <div class="card-header">
                 <span class="badge ${info.badgeClass}">${info.badge}</span>
@@ -470,9 +481,9 @@
     const showDetail = (email,{scrollIntoView=true}={}) => {
       const ai = email.ai || {};
       const confidence = typeof ai.confidence === 'number' ? Math.round(ai.confidence * 100) : null;
-      const aiSummary = ai.category
-        ? `${ai.category.toUpperCase()}${confidence !== null ? ` • ${confidence}% confidence` : ''}`
-        : 'Grey • Metadata pending';
+      const categoryKey = AICategory.normalizeCategory(ai.category);
+      const presentation = AICategory.getCategoryPresentation(categoryKey);
+      const aiSummary = `${presentation.title}${confidence !== null ? ` • ${confidence}% confidence` : ''}`;
       detailTitle.textContent = email.subject;
       detailMeta.innerHTML = `<strong>From:</strong> ${email.from} • <strong>Received:</strong> ${formatTime(email.received)} • <strong>AI:</strong> ${aiSummary}`;
       detailBody.textContent = email.body;
