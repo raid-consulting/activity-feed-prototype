@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>AI Review</title>
 <style>
-  :root { --radius:14px; --gap:12px; --focus:#6ea4e8; }
+  :root { --radius:14px; --gap:12px; --focus:#6ea4e8; --card-stripe:clamp(6px,1vw,10px); }
   :root, html[data-theme="dark"] {
     --bg:#141b26; --panel:#1a2330; --ink:#f4f7fb; --text:#d7dee7; --muted:#a5b3c5;
     --line:#364353; --card:#1d2735; --card-hover:#243041; --banner:#1b2534;
@@ -82,23 +82,27 @@
   .group-count{font-size:13px;color:var(--muted);font-weight:600}
   .group-cards{display:grid;gap:12px}
 
-  .card{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start;
-    padding:clamp(12px,2vw,16px);background:var(--card);border-radius:var(--radius);border:2px solid var(--line);
-    cursor:pointer;transition:background .15s,transform .05s,border-color .2s;text-align:left}
+  .card{display:grid;grid-template-columns:var(--card-stripe) 1fr auto;gap:0;align-items:stretch;
+    padding:0;background:var(--card);border-radius:var(--radius);border:2px solid var(--line);
+    cursor:pointer;transition:background .15s,transform .05s,border-color .2s;text-align:left;overflow:hidden}
   .card:hover{background:var(--card-hover);transform:translateY(-1px)}
   .card:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
-  .card-content{display:grid;gap:6px}
-  .card-header{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .card-stripe{width:var(--card-stripe);min-width:var(--card-stripe);background:var(--grey);align-self:stretch}
+  .card-stripe-green{background:var(--green)}
+  .card-stripe-red{background:var(--red)}
+  .card-stripe-blue{background:var(--blue)}
+  .card-stripe-grey{background:var(--grey)}
+  .card-content{display:grid;gap:6px;padding:clamp(12px,2vw,16px);padding-right:clamp(10px,1.8vw,14px)}
+  .card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .card-category{display:grid;gap:2px}
+  .card-category-title{color:var(--ink);font-weight:800;font-size:clamp(14px,1.8vw,16px)}
+  .card-category-desc{color:var(--muted);font-size:clamp(12px,1.6vw,13px)}
   .title-text{color:var(--ink);font-weight:800;letter-spacing:.2px;font-size:clamp(15px,1.9vw,17px);margin:0}
   .description{color:var(--text);opacity:.9;font-size:clamp(14px,1.8vw,16px);margin:0}
   .meta{color:var(--muted);font-size:clamp(13px,1.6vw,15px)}
-  .chev{opacity:.9;align-self:center}
+  .chev{opacity:.9;align-self:center;padding:0 clamp(12px,2vw,16px);display:flex;align-items:center;justify-content:center}
   .badge{display:inline-flex;align-items:center;gap:6px;font-size:clamp(12px,1.5vw,13px);font-weight:700;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.08);color:var(--ink);border:1px solid var(--line)}
   .timestamp{margin-left:auto;color:var(--muted);font-size:clamp(12px,1.5vw,13px)}
-  .card.accent-red{box-shadow:inset 4px 0 0 var(--red)}
-  .card.accent-green{box-shadow:inset 4px 0 0 var(--green)}
-  .card.accent-blue{box-shadow:inset 4px 0 0 var(--blue)}
-  .card.accent-grey{box-shadow:inset 4px 0 0 var(--grey)}
 
   .empty{padding:32px;border:2px dashed var(--line);border-radius:12px;text-align:center;color:var(--muted);background:var(--card)}
   .loading{padding:32px;border:2px solid var(--line);border-radius:12px;text-align:center;font-weight:700;color:var(--ink);background:var(--card)}
@@ -192,6 +196,7 @@
 
 <script src="refresh-utils.js"></script>
 <script src="ai-classifier.js"></script>
+<script src="ai-category-constants.js"></script>
 <script>
   const DB_KEY='faux-emails', AUTH_KEY='faux-auth';
 
@@ -314,11 +319,17 @@
   const globalMenuHost=document.getElementById('globalMenu');
   if(globalMenuHost){ globalMenuHost.innerHTML=globalMenuHtml({authed:isAuthed(),user:getCurrentUser()}); attachGlobalMenuHandlers(); }
 
+  const AICategory = window.AICategory || {
+    AI_CATEGORY_COPY: {},
+    normalizeCategory: () => 'grey',
+    getCategoryPresentation: () => ({ key: 'grey', title: 'Unassessed', description: 'Awaiting AI review.', stripeClass: 'card-stripe-grey', ariaLabel: 'Unassessed' })
+  };
+
   const CATEGORY_INFO={
-    green:{label:'Green • Ready for automation',accent:'accent-green',detail:'Automation can proceed with high confidence.'},
-    blue:{label:'Blue • Needs context',accent:'accent-blue',detail:'More context is required before automation can resume.'},
-    red:{label:'Red • Manual review',accent:'accent-red',detail:'Risk detected — manual intervention recommended.'},
-    grey:{label:'Grey • Metadata pending',accent:'accent-grey',detail:'AI has not provided metadata for this item yet.'}
+    green:{detail:'Automation can proceed with high confidence.'},
+    blue:{detail:'More context is required before automation can resume.'},
+    red:{detail:'Risk detected — manual intervention recommended.'},
+    grey:{detail:'AI has not provided metadata for this item yet.'}
   };
 
   function formatList(items, fallback='None'){
@@ -359,9 +370,7 @@
 
   function getCategory(item){
     const raw = item && item.ai ? item.ai.category : null;
-    const cat=((raw || item.aiCategory || '')).toLowerCase();
-    if(cat==='green' || cat==='blue' || cat==='red') return cat;
-    return 'grey';
+    return AICategory.normalizeCategory(raw || item.aiCategory);
   }
 
   function formatTime(ts){ return new Date(ts).toLocaleString(); }
@@ -424,18 +433,24 @@
       .map(groupKey=>{
         const groupItems=filtered.filter(item=>getCategory(item)===groupKey);
         if(!groupItems.length) return '';
-        const info=CATEGORY_INFO[groupKey];
+        const info=CATEGORY_INFO[groupKey] || CATEGORY_INFO.grey;
+        const presentation=AICategory.getCategoryPresentation(groupKey);
         const cards=groupItems.map(item=>{
-          const accent=info.accent;
           const ai=item.ai||{};
           const synopsis=ai.notes || item.aiSynopsis || 'Metadata pending for this message.';
           const confidence=formatConfidence(ai);
           const metaParts=[`From ${escapeHtml(item.from)}`,`Status: ${escapeHtml(item.status)}`];
           if(confidence){ metaParts.push(`Confidence: ${confidence}`); }
-          return `<button class="card ${accent}" data-id="${item.id}">
+          const itemCategory=getCategory(item);
+          const stripe=AICategory.getCategoryPresentation(itemCategory);
+          return `<button class="card" data-id="${item.id}">
+            <span class="card-stripe ${stripe.stripeClass}" aria-label="${escapeHtml(stripe.title)}"></span>
             <div class="card-content">
               <div class="card-header">
-                <span class="badge">${info.label}</span>
+                <div class="card-category">
+                  <span class="card-category-title">${escapeHtml(stripe.title)}</span>
+                  <span class="card-category-desc">${escapeHtml(stripe.description)}</span>
+                </div>
                 <span class="timestamp">${formatTime(item.received)}</span>
               </div>
               <div class="title-text">${escapeHtml(item.subject)}</div>
@@ -446,7 +461,7 @@
           </button>`;
         }).join('');
         return `<div class="group">
-          <div class="group-title">${info.label.split(' • ')[0]} <span class="group-count">${groupItems.length} items</span></div>
+          <div class="group-title">${escapeHtml(presentation.title)} <span class="group-count">${groupItems.length} items</span></div>
           <div class="group-cards">${cards}</div>
         </div>`;
       }).join('');
@@ -472,7 +487,8 @@
       return;
     }
     const category=getCategory(email);
-    const info=CATEGORY_INFO[category];
+    const info=CATEGORY_INFO[category] || CATEGORY_INFO.grey;
+    const presentation=AICategory.getCategoryPresentation(category);
     const ai=email.ai||{};
     const confidence=formatConfidence(ai) || '–';
     const assessed=ai.assessed_at ? new Date(ai.assessed_at).toLocaleString() : '–';
@@ -481,12 +497,12 @@
     const permissions=formatList(ai.required_permissions);
     const context=formatList(ai.required_context);
     detailTitle.textContent=email.subject;
-    detailMeta.innerHTML=`<strong>From:</strong> ${escapeHtml(email.from)} • <strong>Received:</strong> ${formatTime(email.received)} • <strong>Status:</strong> ${escapeHtml(email.status)} • <strong>AI:</strong> ${category.toUpperCase()} (${confidence} confidence)`;
+    detailMeta.innerHTML=`<strong>From:</strong> ${escapeHtml(email.from)} • <strong>Received:</strong> ${formatTime(email.received)} • <strong>Status:</strong> ${escapeHtml(email.status)} • <strong>AI:</strong> ${escapeHtml(presentation.title)} (${category.toUpperCase()} • ${confidence} confidence)`;
     detailBody.textContent=email.body;
     detailSynopsis.textContent=ai.notes || email.aiSynopsis || 'Metadata pending for this message.';
     detailAiMeta.textContent=`Assessed ${assessed} • Assessor: ${escapeHtml(assessor)} • Confidence: ${confidence}`;
     detailAiRequirements.textContent=`Blockers: ${escapeHtml(blockers)} • Permissions: ${escapeHtml(permissions)} • Context: ${escapeHtml(context)}`;
-    detailTag.textContent=info.label;
+    detailTag.textContent=`${presentation.title} • ${info.detail}`;
     detailTag.className=`detail-tag ${category}`;
     detailCrumb.textContent=email.subject;
     state.detailId=email.id;
