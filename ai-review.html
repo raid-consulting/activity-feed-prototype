@@ -124,6 +124,7 @@
   .timestamp{margin-left:auto;color:var(--muted);font-size:clamp(12px,1.5vw,13px)}
 
   .empty{padding:32px;border:2px dashed var(--line);border-radius:12px;text-align:center;color:var(--muted);background:var(--card);display:grid;gap:12px;justify-items:center}
+  .empty[hidden]{display:none!important}
   .error{padding:32px;border:2px dashed var(--red);border-radius:12px;text-align:center;color:var(--ink);background:rgba(234,124,118,.1);display:grid;gap:12px;justify-items:center}
   .error p{margin:0;font-weight:700}
   .empty-refresh{appearance:none;border:2px solid var(--line);background:var(--btn);color:var(--ink);padding:10px 16px;border-radius:999px;font-weight:700;cursor:pointer}
@@ -202,7 +203,7 @@
         <div class="loading" id="loadingState" role="status">Loading review signals…</div>
         <div class="stack" id="groupContainer" hidden></div>
         <div class="inline-empty" id="noResultsNotice" hidden role="status" aria-live="polite">No review items match your filters.</div>
-        <div class="empty" id="emptyState" hidden role="region" aria-label="AI review empty state" tabindex="-1">
+        <div class="empty" id="emptyState" data-empty-banner="true" hidden role="region" aria-label="AI review empty state" tabindex="-1">
           <p>No items to review yet.</p>
           <button class="empty-refresh" type="button" id="emptyRefresh">Refresh now</button>
         </div>
@@ -514,6 +515,7 @@
   function logStateSnapshot(){
     const payload={
       phase:state.loadOutcome.phase,
+      view:state.view,
       itemCount:state.loadOutcome.itemCount,
       usingCache:state.loadOutcome.usingCache,
       retries:state.loadOutcome.retries,
@@ -525,7 +527,7 @@
     if(payload.phase===lastStatePhase && fingerprint===lastStatePayload) return;
     lastStatePhase=payload.phase;
     lastStatePayload=fingerprint;
-    logInfoEvent('state', payload);
+    logInfoEvent('ai_review_state', payload);
   }
 
   function logBannerDecision(payload){
@@ -556,6 +558,16 @@
     try {
       if(window && window.console && typeof window.console.info==='function'){
         window.console.info(`[ai_review.cached] ${tag}`, payload);
+      }
+    } catch (_) {
+      /* noop */
+    }
+  }
+
+  function logEmptyBanner(tag,payload){
+    try {
+      if(window && window.console && typeof window.console.info==='function'){
+        window.console.info(`[ai_review.empty] ${tag}`, payload);
       }
     } catch (_) {
       /* noop */
@@ -596,10 +608,31 @@
     } catch (_) {
       computed='n/a';
     }
-    const inertValue=typeof node.inert==='boolean' ? node.inert : node.hasAttribute('inert');
+    let hiddenAttr=false;
+    try {
+      if(typeof node.hasAttribute==='function'){
+        hiddenAttr=node.hasAttribute('hidden');
+      } else if(node.attributes && Object.prototype.hasOwnProperty.call(node.attributes,'hidden')){
+        hiddenAttr=true;
+      }
+    } catch (_) {
+      hiddenAttr=false;
+    }
+    let inertValue;
+    try {
+      if(typeof node.inert==='boolean'){
+        inertValue=node.inert;
+      } else if(typeof node.hasAttribute==='function'){
+        inertValue=node.hasAttribute('inert');
+      } else {
+        inertValue=!!(node.attributes && Object.prototype.hasOwnProperty.call(node.attributes,'inert'));
+      }
+    } catch (_) {
+      inertValue=false;
+    }
     return {
       exists:true,
-      hiddenAttr:node.hasAttribute('hidden'),
+      hiddenAttr,
       ariaHidden:node.getAttribute('aria-hidden'),
       inert:!!inertValue,
       hasClassHidden:node.classList ? node.classList.contains('hidden') : false,
@@ -619,6 +652,76 @@
     } catch (_) {
       /* noop */
     }
+  }
+
+  function applyEmptyBannerVisibility({shouldShow,reason,phase,itemCount,retries,durationMs}){
+    const candidates=Array.from(document.querySelectorAll('[data-empty-banner]'));
+    const fallback=emptyState && !candidates.includes(emptyState) ? [emptyState] : [];
+    const nodes=candidates.concat(fallback);
+    const stateSnapshot={ phase, itemCount, retries, durationMs };
+    logEmptyBanner('decision',{shouldShow,reason,state:stateSnapshot});
+    if(nodes.length>1){
+      logEmptyBanner('multiple_nodes',{
+        count:nodes.length,
+        nodes:nodes.map((node,index)=>describeBannerNode(node,index))
+      });
+    }
+    const primary=nodes[0]||null;
+    const before=snapshotBannerNode(primary);
+    logEmptyBanner('dom_before', before);
+    nodes.forEach((node,index)=>{
+      if(!node) return;
+      const showNode=shouldShow && node===primary;
+      try {
+        if(showNode){
+          node.hidden=false;
+          if(typeof node.removeAttribute==='function'){
+            node.removeAttribute('hidden');
+          } else if(node.attributes){
+            delete node.attributes.hidden;
+          }
+          if(typeof node.setAttribute==='function'){
+            node.setAttribute('aria-hidden','false');
+          } else if(node.attributes){
+            node.attributes['aria-hidden']='false';
+          }
+          setInert(node,false);
+        } else {
+          node.hidden=true;
+          if(typeof node.setAttribute==='function'){
+            node.setAttribute('hidden','');
+            node.setAttribute('aria-hidden','true');
+          } else if(node.attributes){
+            node.attributes.hidden='';
+            node.attributes['aria-hidden']='true';
+          }
+          setInert(node,true);
+        }
+      } catch (_) {
+        /* noop */
+      }
+      if(index>0){
+        node.hidden=true;
+        if(typeof node.setAttribute==='function'){
+          node.setAttribute('hidden','');
+          node.setAttribute('aria-hidden','true');
+        } else if(node.attributes){
+          node.attributes.hidden='';
+          node.attributes['aria-hidden']='true';
+        }
+        setInert(node,true);
+      }
+    });
+    const after=snapshotBannerNode(primary);
+    logEmptyBanner('dom_after', after);
+    const remainsVisible=!shouldShow && after.exists && !after.hiddenAttr && after.computedDisplay!=='none' && after.computedDisplay!=='n/a';
+    if(remainsVisible){
+      logEmptyBanner('conflict',{
+        reason:'visible_when_should_hide',
+        snapshots:{before,after}
+      });
+    }
+    return { primaryNode: primary, shouldShow: shouldShow && !!primary };
   }
 
   function applyCachedBannerVisibility({shouldShow,reason,message}){
@@ -859,18 +962,22 @@
     const hasVisible=shouldRenderList && filteredItems.length>0;
 
     const showLoading=isLoading;
-    const showEmpty=(phase==='success' && state.loadOutcome.itemCount===0);
-    const showCached=(phase==='success' && usingCache && networkWasOffline && state.loadOutcome.itemCount>0);
+    const shouldShowEmpty=(phase==='success' && state.loadOutcome.itemCount===0);
+    let emptyReason='not_success';
+    if(phase==='success'){
+      emptyReason=state.loadOutcome.itemCount===0?'success_zero':'has_items';
+    }
+    const showCached=(phase==='success' && usingCache && state.loadOutcome.itemCount>0);
     const showError=(phase==='error');
     const showNoResults=shouldRenderList && state.items.length>0 && !hasVisible;
 
-    const nextBannerKind=showEmpty ? 'empty' : showCached ? 'cached' : showError ? 'error' : null;
+    const nextBannerKind=shouldShowEmpty ? 'empty' : showCached ? 'cached' : showError ? 'error' : null;
     state.ui.banner.kind=nextBannerKind;
 
     const bannerFlags={
-      info_empty:nextBannerKind==='empty',
-      warn_cached:nextBannerKind==='cached',
-      error_failed:nextBannerKind==='error'
+      empty:nextBannerKind==='empty',
+      degraded:nextBannerKind==='cached',
+      error:nextBannerKind==='error'
     };
     const activeBanners=Object.entries(bannerFlags)
       .filter(([,value])=>value)
@@ -890,6 +997,7 @@
     logBannerDecision({
       chosen,
       reason,
+      active:activeBanners,
       snapshot:{
         phase:state.loadOutcome.phase,
         itemCount:state.loadOutcome.itemCount,
@@ -931,12 +1039,16 @@
       noResultsNotice.hidden=!showNoResults;
     }
 
-    if(emptyState){
-      const showEmptyBanner=nextBannerKind==='empty';
-      emptyState.hidden=!showEmptyBanner;
-      if(showEmptyBanner && state.lastView!==VIEW_STATES.EMPTY && typeof emptyState.focus==='function'){
-        emptyState.focus();
-      }
+    const emptyResult=applyEmptyBannerVisibility({
+      shouldShow: shouldShowEmpty,
+      reason: emptyReason,
+      phase,
+      itemCount: state.loadOutcome.itemCount,
+      retries: state.loadOutcome.retries,
+      durationMs: state.loadOutcome.durationMs
+    });
+    if(emptyResult.shouldShow && emptyResult.primaryNode && state.lastView!==VIEW_STATES.EMPTY && typeof emptyResult.primaryNode.focus==='function'){
+      emptyResult.primaryNode.focus();
     }
 
     if(errorState){
@@ -951,7 +1063,7 @@
     }
 
     const cachedVisibilityReason=(nextBannerKind==='cached')
-      ? 'usingCache+offline'
+      ? (networkWasOffline ? 'usingCache+offline' : 'usingCache_active')
       : !usingCache
         ? 'usingCache_false'
         : !networkWasOffline
@@ -967,7 +1079,7 @@
       message:state.errorMessage || 'Showing cached results while we reconnect…'
     });
 
-    if((state.view===VIEW_STATES.ERROR || state.view===VIEW_STATES.EMPTY) && (showError || showEmpty)){
+    if((state.view===VIEW_STATES.ERROR || state.view===VIEW_STATES.EMPTY) && (showError || shouldShowEmpty)){
       closeDetail();
     }
 
@@ -1071,12 +1183,20 @@
         networkWasOffline:attempt.networkWasOffline || !navigatorOnline()
       });
       try {
+        const status=phase!=='success'
+          ? 'error'
+          : usingCache
+            ? 'degraded'
+            : itemCount===0
+              ? 'empty'
+              : 'success';
         telemetry.log('ai_review_load',{
           phase,
           itemCount,
           durationMs:duration,
           retries:attempt.retries,
-          usingCache:!!usingCache
+          usingCache:!!usingCache,
+          status
         });
       } catch (err) {
         /* ignore telemetry errors */
