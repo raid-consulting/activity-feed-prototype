@@ -55,10 +55,25 @@ function createElement(id){
     _innerHTML,
     set innerHTML(value){ _innerHTML = value; },
     get innerHTML(){ return _innerHTML; },
-    setAttribute(name, value){ this.attributes[name] = value; },
+    setAttribute(name, value){
+      this.attributes[name] = value;
+      if(name === 'hidden'){
+        this.hidden = true;
+      }
+    },
     getAttribute(name){ return this.attributes[name]; },
+    removeAttribute(name){
+      delete this.attributes[name];
+      if(name === 'hidden'){
+        this.hidden = false;
+      }
+    },
+    hasAttribute(name){
+      return Object.prototype.hasOwnProperty.call(this.attributes, name);
+    },
     addEventListener(event, handler){ this.listeners[event] = handler; },
     removeEventListener(event){ delete this.listeners[event]; },
+    contains(){ return false; },
     querySelector(){ return null; },
     querySelectorAll(){ return []; },
     scrollIntoView(){},
@@ -136,13 +151,19 @@ async function mountAiReview({ loader, seedEmails, cachedEmails }={}){
 
   const loadingState = registerElement('loadingState', createElement('loadingState'));
   const emptyState = registerElement('emptyState', createElement('emptyState'));
+  emptyState.setAttribute('hidden', '');
+  emptyState.setAttribute('data-empty-banner', 'true');
   const emptyRefresh = registerElement('emptyRefresh', createElement('emptyRefresh'));
   const errorState = registerElement('errorState', createElement('errorState'));
+  errorState.setAttribute('hidden', '');
   const errorMessageNode = createElement();
   errorState.querySelector = (selector) => selector === 'p' ? errorMessageNode : null;
   const errorRetry = registerElement('errorRetry', createElement('errorRetry'));
   const degradedBanner = registerElement('degradedBanner', createElement('degradedBanner'));
+  degradedBanner.setAttribute('hidden', '');
+  degradedBanner.setAttribute('data-banner-kind', 'cached');
   const degradedMessage = registerElement('degradedMessage', createElement('degradedMessage'));
+  degradedBanner.contains = (node) => node === degradedMessage;
   const degradedRetry = registerElement('degradedRetry', createElement('degradedRetry'));
   const noResultsNotice = registerElement('noResultsNotice', createElement('noResultsNotice'));
   const reviewContent = registerElement('reviewContent', createElement('reviewContent'));
@@ -181,6 +202,12 @@ async function mountAiReview({ loader, seedEmails, cachedEmails }={}){
     querySelectorAll(selector){
       if (selector === '[data-filter]') {
         return filterButtons;
+      }
+      if (selector === '[data-empty-banner]') {
+        return elements.emptyState ? [elements.emptyState] : [];
+      }
+      if (selector === '[data-banner-kind="cached"]') {
+        return elements.degradedBanner ? [elements.degradedBanner] : [];
       }
       return [];
     },
@@ -353,6 +380,12 @@ function getLatestInfo(env, event){
   return entries.length ? entries[entries.length - 1] : null;
 }
 
+function getEmptyLogs(env, tag){
+  return env.logs.info
+    .filter(args => args[0] === `[ai_review.empty] ${tag}`)
+    .map(args => args[1]);
+}
+
 async function testSuccessWithItems(){
   const items = [createSampleEmail('a1'), createSampleEmail('a2')];
   const env = await mountAiReview({ loader: () => Promise.resolve(items), seedEmails: items });
@@ -372,6 +405,14 @@ async function testSuccessWithItems(){
   assert(bannerLog, 'banner decision emitted');
   assert(Array.isArray(bannerLog.active) && bannerLog.active.length===0, 'no banners active on successful load');
   assert.strictEqual(getInfoLogs(env,'banner_conflict').length, 0, 'no conflicts logged on success');
+  const emptyDecisions=getEmptyLogs(env,'decision');
+  assert(emptyDecisions.length>0, 'empty banner decisions logged for success with items');
+  const lastDecision=emptyDecisions[emptyDecisions.length-1];
+  assert.strictEqual(lastDecision.shouldShow, false, 'empty banner hidden when items present');
+  assert.strictEqual(lastDecision.reason, 'has_items', 'empty banner reason reflects items present');
+  assert.strictEqual(getEmptyLogs(env,'dom_before').length>0, true, 'empty banner dom_before emitted');
+  assert.strictEqual(getEmptyLogs(env,'dom_after').length>0, true, 'empty banner dom_after emitted');
+  assert.strictEqual(getEmptyLogs(env,'conflict').length, 0, 'no empty banner conflicts when items present');
 }
 
 async function testEmptySuccess(){
@@ -388,6 +429,16 @@ async function testEmptySuccess(){
   assert(bannerLog && bannerLog.active.includes('empty'), 'empty banner recorded');
   assert(!bannerLog.active.includes('error'), 'error banner not active on empty');
   assert.strictEqual(getInfoLogs(env,'banner_conflict').length, 0, 'no conflicts logged on empty state');
+  const emptyDecisions=getEmptyLogs(env,'decision');
+  assert(emptyDecisions.length>0, 'empty banner decisions logged for empty success');
+  const latest=emptyDecisions[emptyDecisions.length-1];
+  assert.strictEqual(latest.shouldShow, true, 'empty banner shown when zero items');
+  assert.strictEqual(latest.reason, 'success_zero', 'empty banner reason indicates zero items');
+  assert.strictEqual(latest.state.phase, 'success', 'empty banner state snapshot records success phase');
+  assert.strictEqual(latest.state.itemCount, 0, 'empty banner state snapshot itemCount zero');
+  assert.strictEqual(getEmptyLogs(env,'dom_before').length>0, true, 'empty banner dom_before emitted for empty success');
+  assert.strictEqual(getEmptyLogs(env,'dom_after').length>0, true, 'empty banner dom_after emitted for empty success');
+  assert.strictEqual(getEmptyLogs(env,'conflict').length, 0, 'no empty banner conflicts when showing banner');
 }
 
 async function testErrorNoCache(){
