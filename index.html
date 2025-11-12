@@ -123,17 +123,17 @@
   function cardChevron(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>'; }
 
   function bannerHtml(){
-    return \`
+    return `
       <div class="banner">
-        <div class="title">\${svgPentagon()} Activity Feed</div>
+        <div class="title">${svgPentagon()} Activity Feed</div>
         <div class="nav">
           <a class="link" href="index.html">Activity</a>
           <a class="link" href="admin.html">Admin</a>
-          <div class="switch"><span id="themeLabel">\${document.documentElement.getAttribute('data-theme')==='light'?'Light':'Dark'}</span>
+          <div class="switch"><span id="themeLabel">${document.documentElement.getAttribute('data-theme')==='light'?'Light':'Dark'}</span>
             <button class="toggle" id="themeToggle"><span class="knob"></span></button>
           </div>
         </div>
-      </div>\`;
+      </div>`;
   }
   function attachBannerToggle(){
     const toggle = document.getElementById('themeToggle');
@@ -146,9 +146,9 @@
 
   function renderLogin(){
     const el = document.getElementById('app');
-    el.innerHTML = \`
+    el.innerHTML = `
       <section class="inner">
-        \${bannerHtml()}
+        ${bannerHtml()}
         <div class="login-wrap card-plain">
           <h2 style="margin:0 0 6px 0;color:var(--ink)">Sign in</h2>
           <p class="meta" style="margin:0 0 12px 0">Enter your credentials to continue.</p>
@@ -161,7 +161,7 @@
             <button class="btn" id="loginBtn">Login</button>
           </div>
         </div>
-      </section>\`;
+      </section>`;
     attachBannerToggle();
     document.getElementById('loginBtn').onclick = () => {
       const u = document.getElementById('user').value.trim();
@@ -186,33 +186,33 @@
       'info': {id:'general-info', title:'General information', accent:'accent-amber', icon:'<svg viewBox=\'0 0 24 24\' fill=\'none\' stroke-width=\'2\' class=\'icon-amber\'><path d=\'M12 3l8 9-8 9-8-9 8-9z\'/></svg>'},
       'urgent': {id:'urgent-payment', title:'Urgent: payment deadline', accent:'accent-crimson', icon:'<svg viewBox=\'0 0 24 24\' fill=\'none\' stroke-width=\'2\' class=\'icon-crimson\'><path d=\'M12 3l10 18H2L12 3z\'/><path d=\'M12 9v5\'/><circle cx=\'12\' cy=\'17\' r=\'1.4\'/></svg>'}
     };
-    const categoryCard = \`
+    const categoryCard = `
       <button class="card category accent-muted" data-kind="category">
-        <span class="glyph">\${svgPentagon()}</span>
+        <span class="glyph">${svgPentagon()}</span>
         <div><div class="title-text">Notifications</div>
         <div class="meta">Overview of system updates and tasks</div></div>
-        <span class="chev">\${cardChevron()}</span>
-      </button>\`;
+        <span class="chev">${cardChevron()}</span>
+      </button>`;
 
     const cards = emails.map(e => {
       const m = map[e.status] || map['info'];
-      return \`<div class="card-wrap">
-        <button class="card \${m.accent}" data-email="\${e.id}" data-kind="\${m.id}">
-          <span class="glyph">\${m.icon}</span>
+      return `<div class="card-wrap">
+        <button class="card ${m.accent}" data-email="${e.id}" data-kind="${m.id}">
+          <span class="glyph">${m.icon}</span>
           <div>
-            <div class="title-text">\${m.title}</div>
-            <div class="meta">\${e.subject}</div>
+            <div class="title-text">${m.title}</div>
+            <div class="meta">${e.subject}</div>
           </div>
-          <span class="chev">\${cardChevron()}</span>
+          <span class="chev">${cardChevron()}</span>
         </button>
-        <div class="inline-detail" id="inline-\${e.id}" hidden></div>
-      </div>\`;
+        <div class="inline-detail" id="inline-${e.id}" hidden></div>
+      </div>`;
     }).join('');
 
-    document.getElementById('app').innerHTML = \`
+    document.getElementById('app').innerHTML = `
       <section class="inner">
-        \${bannerHtml()}
-        <div class="stack" id="cardList">\${categoryCard}\${cards}</div>
+        ${bannerHtml()}
+        <div class="stack" id="cardList">${categoryCard}${cards}</div>
         <aside class="detail aside" id="detailAside" aria-live="polite">
           <div class="label">Details</div>
           <h2>Select a notification</h2>
@@ -223,7 +223,7 @@
             <button class="btn" disabled>Archive</button>
           </div>
         </aside>
-      </section>\`;
+      </section>`;
 
     attachBannerToggle();
 
@@ -232,21 +232,21 @@
 
     function showDetails(email, inlineEl){
       if(!email) return;
-      const content = \`
+      const content = `
         <div class="label">Email</div>
-        <h2>\${email.subject}</h2>
-        <p><strong>From:</strong> \${email.from} • <strong>Received:</strong> \${new Date(email.received).toLocaleString()}</p>
-        <p style="margin-top:8px">\${email.body}</p>
+        <h2>${email.subject}</h2>
+        <p><strong>From:</strong> ${email.from} • <strong>Received:</strong> ${new Date(email.received).toLocaleString()}</p>
+        <p style="margin-top:8px">${email.body}</p>
         <div class="actions" style="margin-top:10px">
           <button class="btn">Open</button>
           <button class="btn">Assign</button>
           <button class="btn">Archive</button>
-        </div>\`;
+        </div>`;
 
       if(isDesktop()){
         const aside = document.getElementById('detailAside');
         aside.querySelector('h2').textContent = email.subject;
-        aside.querySelector('p').innerHTML = \`<strong>From:</strong> \${email.from} • <strong>Received:</strong> \${new Date(email.received).toLocaleString()}<br>\${email.body}\`;
+        aside.querySelector('p').innerHTML = `<strong>From:</strong> ${email.from} • <strong>Received:</strong> ${new Date(email.received).toLocaleString()}<br>${email.body}`;
       } else {
         // Mobile: render ONLY inline; ensure aside stays hidden by CSS
         document.querySelectorAll('.inline-detail').forEach(d => d.hidden = true);

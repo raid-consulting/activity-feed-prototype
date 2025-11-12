@@ -107,14 +107,14 @@
   const tbody = document.querySelector('#tbl tbody');
   function render(){
     const emails = JSON.parse(localStorage.getItem(DB_KEY)||'[]');
-    tbody.innerHTML = emails.map(e => \`
+    tbody.innerHTML = emails.map(e => `
       <tr>
-        <td>\${e.from}</td>
-        <td>\${e.subject}</td>
-        <td>\${e.status}</td>
-        <td>\${fmt(e.received)}</td>
-        <td><button class="btn" data-id="\${e.id}">View</button></td>
-      </tr>\`).join('');
+        <td>${e.from}</td>
+        <td>${e.subject}</td>
+        <td>${e.status}</td>
+        <td>${fmt(e.received)}</td>
+        <td><button class="btn" data-id="${e.id}">View</button></td>
+      </tr>`).join('');
     tbody.querySelectorAll('button[data-id]').forEach(b => b.onclick = () => viewEmail(b.getAttribute('data-id')));
   }
   function viewEmail(id){
@@ -122,9 +122,9 @@
     const e = emails.find(x=>x.id===id); if(!e) return;
     const viewer = document.createElement('div');
     viewer.className='detail';
-    viewer.innerHTML = \`<h3 style="margin:0 0 8px 0;color:var(--ink)">\${e.subject}</h3>
-      <p><strong>From:</strong> \${e.from} • <strong>Received:</strong> \${fmt(e.received)}</p>
-      <p style="margin-top:8px">\${e.body}</p>\`;
+    viewer.innerHTML = `<h3 style="margin:0 0 8px 0;color:var(--ink)">${e.subject}</h3>
+      <p><strong>From:</strong> ${e.from} • <strong>Received:</strong> ${fmt(e.received)}</p>
+      <p style="margin-top:8px">${e.body}</p>`;
     document.querySelector('.inner').appendChild(viewer);
     viewer.scrollIntoView({behavior:'smooth'});
   }
