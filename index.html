@@ -10,6 +10,7 @@
     --gap:12px;
     --focus:#6ea4e8;
     --page-pad:clamp(16px,3vw,28px);
+    --frame-gap:clamp(12px,2.2vw,18px);
     --footer-safe-area:env(safe-area-inset-bottom);
     --card-stripe:clamp(6px,1vw,10px);
   }
@@ -35,7 +36,11 @@
     overflow-x:hidden;transition:background .2s,color .2s}
   .frame{margin:0 auto;width:min(1100px,100%);max-width:100%;background:var(--panel);border:2px solid var(--line);
     border-radius:18px;padding:clamp(12px,2.2vw,18px);box-shadow:var(--shadow);
-    display:grid;gap:clamp(12px,2.2vw,18px);flex:1 0 auto;min-height:0}
+    display:grid;gap:var(--frame-gap);flex:1 0 auto;min-height:0}
+  .frame > *{margin-block:0}
+  .frame > :first-child{margin-block-start:0}
+  .frame > :first-child + *{margin-block-start:0}
+  #globalMenu{display:contents}
   .inner{display:grid;grid-template-columns:1fr;gap:clamp(12px,2vw,18px);background:var(--panel);
     border:2px solid var(--line);border-radius:14px;padding:clamp(14px,2.2vw,20px);position:relative}
 
