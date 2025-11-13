@@ -14,12 +14,19 @@ main {
   padding-inline: var(--space-4);
 }
 
-header .inner,
-.container .inner {
+:is(header.app-header, .container .inner) {
   max-width: var(--layout-max-width);
   width: 100%;
   margin: 0 auto;
   padding-inline: var(--layout-horizontal-pad);
+  box-sizing: border-box;
+}
+
+header.app-header > .inner {
+  max-width: none;
+  margin: 0;
+  padding-inline: 0;
+  width: 100%;
   box-sizing: border-box;
 }
 
