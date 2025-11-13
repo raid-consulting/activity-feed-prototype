@@ -190,7 +190,7 @@ async function mountAiReview({ loader, seedEmails, cachedEmails }={}){
   detailBack.addEventListener = () => {};
   detailBackBtn.addEventListener = () => {};
   const globalShellHost = registerElement('globalShell', createElement('globalShell'));
-  const appFooter = registerElement('appFooter', createElement('appFooter'));
+  const footer = registerElement('footer', createElement('footer'));
   const themeToggle = registerElement('themeToggle', createElement('themeToggle'));
   themeToggle.addEventListener = () => {};
   const themeLabel = registerElement('themeLabel', createElement('themeLabel'));

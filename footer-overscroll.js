@@ -26,7 +26,7 @@
       return root.__footerOverscrollController;
     }
 
-    const footer = options.footer || doc.getElementById(options.footerId || 'appFooter');
+    const footer = options.footer || doc.getElementById(options.footerId || 'footer');
     if (!footer) return null;
 
     const scrollElement = doc.scrollingElement || root;
