@@ -58,7 +58,6 @@
   }
   *{box-sizing:border-box} html,body{height:100%}
   body{margin:0;background:var(--bg);color:var(--text);
-    font: clamp(15px,1.6vw,17px)/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial;
     min-height:100vh;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;
     gap:var(--page-pad);padding:var(--page-pad);
     overflow-x:hidden;transition:background .2s,color .2s}
@@ -76,13 +75,12 @@
     display:flex;align-items:center;justify-content:center;color:var(--ink)}
   .app-logo svg{width:100%;height:100%;display:block}
   .app-title{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;
-    font-weight:800;letter-spacing:.2px;font-size:clamp(18px,2.2vw,22px);color:var(--ink);
-    white-space:nowrap;pointer-events:none;line-height:1}
+    color:var(--ink);white-space:nowrap;pointer-events:none}
   .primary-menu{gap:10px;justify-content:flex-end;overflow-x:auto;flex-wrap:nowrap;margin:0;margin-left:auto;
     scrollbar-width:none;display:flex;align-items:center;flex:0 1 auto;padding:0}
   .primary-menu[aria-hidden="true"]{justify-content:flex-end}
   .primary-menu::-webkit-scrollbar{display:none}
-  .primary-menu__placeholder{opacity:.4;font-weight:600;font-size:14px}
+  .primary-menu__placeholder{opacity:.4}
   .page-sections{
     display:flex;
     flex-direction:column;
@@ -110,8 +108,8 @@
   .btn,
   .btn-sm,
   .link,
-  .footer-button{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:100%;min-height:0;max-height:var(--btn-height-max);gap:6px}
-  .link{color:var(--ink);text-decoration:none;font-weight:700;padding:0 clamp(12px,2vw,16px);border-radius:10px;border:2px solid var(--line);background:var(--btn);flex:0 0 auto;height:var(--btn-height-md)}
+  .footer-button{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:100%;min-height:0;max-height:var(--btn-height-max);gap:6px}
+  .link{color:var(--ink);text-decoration:none;padding:0 clamp(12px,2vw,16px);border-radius:10px;border:2px solid var(--line);background:var(--btn);flex:0 0 auto;height:var(--btn-height-md)}
   .link:hover{background:var(--btn-hover)}
   .link[aria-current="page"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
   .toggle{width:54px;height:30px;border-radius:100px;border:2px solid var(--line);background:var(--btn);position:relative;cursor:pointer}
@@ -122,53 +120,54 @@
   .app-footer{position:sticky;bottom:0;background:var(--banner);border-top:2px solid var(--line);padding:clamp(12px,2vw,18px) clamp(18px,3vw,28px);
     padding-bottom:calc(clamp(12px,2vw,18px) + var(--footer-safe-area));display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;z-index:100;box-shadow:0 -6px 18px rgba(6,11,20,.24);margin-inline:calc(-1 * var(--page-pad))}
   .footer-meta{display:flex;flex-direction:column;gap:2px;color:var(--muted)}
-  .footer-meta strong{color:var(--ink);font-size:clamp(14px,1.7vw,16px)}
+  .footer-meta strong{color:var(--ink)}
   .footer-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-  .footer-button{appearance:none;border:2px solid var(--line);background:var(--btn);color:var(--ink);padding:0 clamp(12px,2vw,16px);border-radius:10px;font-weight:700;cursor:pointer;height:var(--btn-height-md)}
+  .footer-button{appearance:none;border:2px solid var(--line);background:var(--btn);color:var(--ink);padding:0 clamp(12px,2vw,16px);border-radius:10px;cursor:pointer;height:var(--btn-height-md)}
   .footer-button:hover{background:var(--btn-hover)}
   .footer-button[disabled]{opacity:.6;cursor:not-allowed}
   .footer-theme{display:flex;align-items:center;gap:10px}
-  .footer-theme-label{color:var(--muted);font-weight:600}
+  .footer-theme-label{color:var(--muted)}
 
   .section-banner{display:flex;align-items:center;justify-content:space-between;gap:14px;background:var(--banner);border:2px solid var(--line);border-radius:12px;padding:var(--panel-pad)}
   .panel-head{align-items:flex-start;flex-wrap:wrap;gap:var(--gap)}
   .panel-head__title{display:flex;flex-direction:column;gap:4px;flex:1 1 auto;min-width:0}
   .panel-head .actions{flex:0 0 auto;width:auto;justify-content:flex-end}
-  .section-title{display:flex;gap:10px;align-items:center;color:var(--ink);font-weight:800;font-size:clamp(18px,2.4vw,22px);margin:0}
-  .section-subtitle{margin:0;color:var(--muted);font-size:clamp(13px,1.6vw,15px)}
+  .section-title{display:flex;gap:10px;align-items:center;color:var(--ink);margin:0}
+  .section-subtitle{margin:0;color:var(--muted)}
 
   table{width:100%;border-collapse:separate;border-spacing:0}
   th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left}
   th{color:var(--ink)}
   tr:hover{background:var(--card-hover)}
   .actions{display:flex;gap:10px;flex-wrap:wrap}
-  .btn{appearance:none;border:2px solid var(--line);background:var(--btn);color:var(--text);padding:0 clamp(12px,2vw,16px);border-radius:10px;font-weight:700;cursor:pointer;height:var(--btn-height-lg)}
+  .btn{appearance:none;border:2px solid var(--line);background:var(--btn);color:var(--text);padding:0 clamp(12px,2vw,16px);border-radius:10px;cursor:pointer;height:var(--btn-height-lg)}
   .btn:hover{background:var(--btn-hover)}
-  .btn-sm{height:var(--btn-height-sm);padding:0 clamp(10px,1.6vw,14px);font-size:.92em}
+  .btn-sm{height:var(--btn-height-sm);padding:0 clamp(10px,1.6vw,14px)}
   .detail{background:var(--detail);border:2px solid var(--line);border-radius:12px;padding:var(--panel-pad)}
   #listPanel.detail{align-self:start}
   .ai-section{display:grid;gap:10px;margin-top:14px}
   .ai-field-grid{display:grid;gap:10px}
   .ai-field-grid .ai-field{display:grid;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px}
-  .ai-field-grid dt{margin:0;font-weight:700;color:var(--ink);font-size:clamp(13px,1.5vw,15px)}
-  .ai-field-grid dd{margin:0;color:var(--text);font-size:clamp(13px,1.6vw,15px);word-break:break-word}
+  .ai-field-grid dt{margin:0;color:var(--ink)}
+  .ai-field-grid dd{margin:0;color:var(--text);word-break:break-word}
   .ai-field-grid ul{margin:6px 0 0 18px;padding:0;color:inherit}
   .ai-field-grid li{margin:2px 0}
   .ai-field-grid .ai-empty{color:var(--muted);font-style:italic}
   .override-form{display:grid;gap:10px;margin-top:4px}
-  .override-form h5{margin:0;color:var(--ink);font-size:clamp(14px,1.7vw,16px)}
-  .override-form label{display:grid;gap:6px;font-weight:600;color:var(--ink)}
+  .override-form h5{margin:0;color:var(--ink)}
+  .override-form label{display:grid;gap:6px;color:var(--ink)}
   .override-form select,.override-form textarea{padding:10px 12px;border:2px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);font:inherit;min-height:44px}
   .override-form textarea{min-height:90px;resize:vertical}
   .override-form .form-actions{display:flex;gap:10px;flex-wrap:wrap}
-  .override-status{font-size:clamp(12px,1.4vw,14px)}
+  .override-status{}
   .override-status[data-status="error"]{color:var(--red)}
   .override-status[data-status="success"]{color:var(--green)}
-  .crumbs{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:clamp(13px,1.6vw,15px);margin-bottom:12px}
+  .crumbs{display:flex;align-items:center;gap:8px;color:var(--muted);margin-bottom:12px}
   .crumbs strong{color:var(--ink)}
-  .crumbs button{background:none;border:none;color:var(--ink);font-weight:700;cursor:pointer;padding:0;font-size:inherit}
+  .crumbs button{background:none;border:none;color:var(--ink);cursor:pointer;padding:0}
   .crumbs button:hover{text-decoration:underline}
 </style>
+<link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <main class="frame">
@@ -202,7 +201,7 @@
         <p id="detailMeta">Choose a message from the inbox to review its contents.</p>
         <p id="detailBody"></p>
         <section id="detailAiSection" class="ai-section">
-          <h4 style="margin:0;color:var(--ink);font-size:clamp(15px,1.8vw,17px)">AI readiness</h4>
+          <h4 style="margin:0;color:var(--ink)">AI readiness</h4>
           <dl class="ai-field-grid" id="detailAiFields"></dl>
           <form class="override-form" id="manualOverrideForm">
             <h5>Manual override</h5>
