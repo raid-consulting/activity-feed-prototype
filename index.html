@@ -16,6 +16,10 @@
     --shell-header-height-mobile:69.5px;
     --shell-page-top-gap-mobile:12px;
     --shell-header-pad-inline:clamp(12px,2.2vw,16px);
+    --shell-logo-size:48px;
+    --shell-logo-size-mobile:32px;
+    --panel-pad:clamp(16px,2vw,20px);
+    --panel-pad-mobile:clamp(12px,4vw,16px);
     --footer-safe-area:env(safe-area-inset-bottom);
     --card-stripe:clamp(6px,1vw,10px);
   }
@@ -23,6 +27,8 @@
     :root{
       --shell-header-height:var(--shell-header-height-mobile);
       --shell-page-top-gap:var(--shell-page-top-gap-mobile);
+      --shell-logo-size:var(--shell-logo-size-mobile);
+      --panel-pad:var(--panel-pad-mobile);
     }
   }
   :root, html[data-theme="dark"] {
@@ -54,8 +60,14 @@
   .global-shell{display:contents}
   .app-header{background:var(--banner);border:2px solid var(--line);border-radius:12px;
     padding:0 var(--shell-header-pad-inline);display:flex;align-items:center;width:100%;box-sizing:border-box;
-    justify-content:space-between;gap:clamp(12px,2vw,18px);height:var(--shell-header-height);min-height:0}
-  .primary-menu{gap:10px;justify-content:flex-end;overflow-x:auto;flex-wrap:nowrap;margin:0;
+    gap:clamp(12px,2vw,18px);height:var(--shell-header-height);min-height:0;position:relative}
+  .app-logo{width:var(--shell-logo-size);height:var(--shell-logo-size);flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;color:var(--ink)}
+  .app-logo svg{width:100%;height:100%;display:block}
+  .app-title{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;
+    font-weight:800;letter-spacing:.2px;font-size:clamp(18px,2.2vw,22px);color:var(--ink);
+    white-space:nowrap;pointer-events:none;line-height:1}
+  .primary-menu{gap:10px;justify-content:flex-end;overflow-x:auto;flex-wrap:nowrap;margin:0;margin-left:auto;
     scrollbar-width:none;display:flex;align-items:center;flex:0 1 auto;padding:0}
   .primary-menu[aria-hidden="true"]{justify-content:flex-end}
   .primary-menu::-webkit-scrollbar{display:none}
@@ -64,12 +76,10 @@
   .page-sections > *{margin-block:0}
   .page-sections > :first-child{margin-block-start:0}
   .inner{display:grid;grid-template-columns:1fr;gap:clamp(12px,2vw,18px);background:var(--panel);
-    border:2px solid var(--line);border-radius:14px;padding:clamp(14px,2.2vw,20px);position:relative}
+    border:2px solid var(--line);border-radius:14px;padding:var(--panel-pad);position:relative}
 
   /* Global navigation */
-  .global-title{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.2px;
-    font-size:clamp(18px,2.2vw,21px);color:var(--ink);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
-  .link{color:var(--ink);text-decoration:none;font-weight:700;padding:8px 12px;border-radius:10px;border:2px solid var(--line);background:var(--btn);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-height:40px;white-space:nowrap;flex:0 0 auto}
+  .link{color:var(--ink);text-decoration:none;font-weight:700;padding:8px 14px;border-radius:10px;border:2px solid var(--line);background:var(--btn);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-height:38px;white-space:nowrap;flex:0 0 auto}
   .link:hover{background:var(--btn-hover)}
   .link[aria-current="page"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
   .toggle{width:54px;height:30px;border-radius:100px;border:2px solid var(--line);background:var(--btn);position:relative;cursor:pointer}
@@ -93,7 +103,7 @@
 
   /* Section banner */
   .section-banner{display:flex;align-items:center;justify-content:space-between;gap:14px;
-    padding:clamp(12px,2vw,16px);background:var(--banner);border:2px solid var(--line);border-radius:12px}
+    padding:var(--panel-pad);background:var(--banner);border:2px solid var(--line);border-radius:12px}
   .section-title{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.2px;
     font-size:clamp(18px,2.4vw,22px);color:var(--ink);margin:0}
   .section-subtitle{margin:0;color:var(--muted);font-size:clamp(13px,1.6vw,15px)}
@@ -125,13 +135,14 @@
   .card.is-urgent{box-shadow:0 0 0 2px rgba(255,122,102,.55);border-color:rgba(255,122,102,.6)}
 
   /* Details: only one mode visible at a time */
-  .detail{background:var(--detail);border:2px solid var(--line);border-radius:12px;padding:clamp(14px,2.2vw,20px);min-height:160px}
+  .detail{background:var(--detail);border:2px solid var(--line);border-radius:12px;padding:var(--panel-pad);min-height:160px}
   .detail .label{color:var(--muted);font-size:clamp(13px,1.5vw,15px);margin-bottom:6px}
   .detail h2{margin:0 0 8px 0;font-size:clamp(18px,2.2vw,22px);color:var(--ink)}
   .detail p{margin:0 0 12px 0}
   .detail .actions{display:flex;gap:10px;flex-wrap:wrap}
   .btn{appearance:none;border:2px solid var(--line);background:var(--btn);color:var(--text);
     padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer;min-height:44px}
+  .btn-sm{min-height:32px;padding:6px 12px;font-size:.92em}
   .btn:hover{background:var(--btn-hover)}
 
   .detail-view{display:none;grid-column:1/-1;gap:16px}
@@ -312,7 +323,8 @@
     return `
       <div class="global-shell" data-shell>
         <header class="app-header" data-shell-header data-test="app-header">
-          <div class="global-title">${svgPentagon()} Operations Console</div>
+          <div class="app-logo" data-shell-logo aria-hidden="true">${svgPentagon()}</div>
+          <div class="app-title" data-shell-title role="heading" aria-level="1">Operations Console</div>
           <nav class="primary-menu" ${navAttrs} data-shell-menu data-test="app-menu">${navBody}</nav>
         </header>
       </div>`;
@@ -342,8 +354,7 @@
     const styles = getComputedStyle(document.documentElement);
     const read = (name) => parseFloat(styles.getPropertyValue(name)) || 0;
     return {
-      header: read('--shell-header-height'),
-      gap: read('--shell-page-top-gap')
+      header: read('--shell-header-height')
     };
   }
 
@@ -354,24 +365,35 @@
       raf(() => {
         const header = document.querySelector('[data-shell-header]');
         const menu = document.querySelector('[data-shell-menu]');
-        const pageRoot = document.querySelector('[data-page-root]');
-        if(!header || !menu || !pageRoot) return;
-        const firstSection = pageRoot.firstElementChild;
-        if(!firstSection) return;
-        const headerRect = header.getBoundingClientRect();
-        const firstRect = firstSection.getBoundingClientRect();
-        const firstStyles = getComputedStyle(firstSection);
+        const logo = document.querySelector('[data-shell-logo]');
+        const title = document.querySelector('[data-shell-title]');
+        if(!header || !menu || !logo || !title) return;
+        const firstPanel = document.querySelector('[data-panel]');
+        const resetBtn = document.querySelector('[data-test-reset]');
         const tokens = getShellLayoutTokens();
-        const gap = firstRect.top - headerRect.bottom;
-        const expectedStart = headerRect.top + tokens.header + tokens.gap;
+        const headerRect = header.getBoundingClientRect();
+        const logoRect = logo.getBoundingClientRect();
+        const titleRect = title.getBoundingClientRect();
+        const menuBtn = menu.querySelector('.link') || null;
+        const menuBtnRect = menuBtn ? menuBtn.getBoundingClientRect() : {height:0};
+        const center = headerRect.left + headerRect.width / 2;
+        const titleCenter = titleRect.left + titleRect.width / 2;
+        const panelPad = firstPanel ? (parseFloat(getComputedStyle(firstPanel).paddingTop) || 0) : 0;
+        const resetRect = resetBtn ? resetBtn.getBoundingClientRect() : null;
+        const resetHeight = resetRect ? resetRect.height : 0;
+        const mm = typeof matchMedia === 'function' ? matchMedia('(max-width:720px)') : null;
+        const isMobile = !!(mm && mm.matches);
+        const within = (value, min, max) => value >= min && value <= max;
+        const headerOk = Math.abs(headerRect.height - tokens.header) <= 2;
+        const logoOk = within(logoRect.height, isMobile ? 30 : 46, isMobile ? 34 : 50);
+        const titleDelta = Math.abs(center - titleCenter);
+        const titleOk = titleDelta <= 4;
+        const menuOk = !menuBtn || within(menuBtnRect.height, 36, 40);
+        const panelOk = !firstPanel || within(panelPad, isMobile ? 12 : 16, isMobile ? 16 : 20);
+        const resetOk = !resetBtn || within(resetHeight, 32, 36);
         const menuInside = header.contains(menu);
-        const marginTop = Math.abs(parseFloat(firstStyles.marginTop) || 0);
-        const ok = menuInside
-          && Math.abs(headerRect.height - tokens.header) <= 1
-          && Math.abs(gap - tokens.gap) <= 1
-          && Math.abs(firstRect.top - expectedStart) <= 1
-          && marginTop <= 0.5;
-        console.log(`[layout] header_h=${headerRect.height.toFixed(1)}px gap=${gap.toFixed(1)}px startY=${firstRect.top.toFixed(1)}px ok=${ok}`);
+        const ok = headerOk && logoOk && titleOk && menuOk && panelOk && resetOk && menuInside;
+        console.log(`[layout] banner_h=${headerRect.height.toFixed(1)}px logo_h=${logoRect.height.toFixed(1)}px title_center_delta=${titleDelta.toFixed(1)}px menu_btn_h=${menuBtnRect.height.toFixed(1)}px panel_pad=${panelPad.toFixed(1)}px reset_btn_h=${resetHeight.toFixed(1)}px ok=${ok}`);
       });
     });
   }
@@ -419,7 +441,11 @@
       <section class="page-sections" data-page-root>${content}</section>`;
     const pageRoot = el.querySelector('[data-page-root]');
     if(pageRoot && pageRoot.firstElementChild){
-      pageRoot.firstElementChild.setAttribute('data-test', 'first-section');
+      const first = pageRoot.firstElementChild;
+      first.setAttribute('data-test', 'first-section');
+      if(!first.hasAttribute('data-panel')){
+        first.setAttribute('data-panel', '');
+      }
     }
     renderFooter({authed, user, onLogout});
     logLayoutProbe();
@@ -430,7 +456,7 @@
     renderFrame({
       authed:false,
       content:`
-        <section class="inner" data-test="first-section">
+        <section class="inner" data-test="first-section" data-panel>
           <div class="login-wrap card-plain">
             <h2 style="margin:0 0 6px 0;color:var(--ink)">Sign in</h2>
             <p class="meta" style="margin:0 0 12px 0">Enter your credentials to continue.</p>
@@ -487,7 +513,7 @@
       authed:true,
       user:currentUser,
       content:`
-        <section class="inner" data-test="first-section">
+        <section class="inner" data-test="first-section" data-panel>
           <header class="section-banner">
             <h1 class="section-title">Activity Feed</h1>
             <p class="section-subtitle">Monitor inbox triage and recent automation updates.</p>
