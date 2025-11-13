@@ -188,7 +188,7 @@
 </head>
 <body>
   <main class="frame" id="app"></main>
-  <footer id="appFooter" class="app-footer" role="contentinfo"></footer>
+  <footer id="footer" class="app-footer" role="contentinfo"></footer>
 
 <script src="footer-overscroll.js"></script>
 <script src="refresh-utils.js"></script>
@@ -367,6 +367,45 @@
       </div>`;
   }
 
+  function findMenuUnavailableElements(){
+    const selectors = ['#menu', '.menu-unavailable', '.primary-menu__placeholder'];
+    const nodes = new Set();
+    selectors.forEach(selector => {
+      document.querySelectorAll(selector).forEach(node => nodes.add(node));
+    });
+    return Array.from(nodes);
+  }
+
+  function applyAuthVisibility(){
+    const body = document.body;
+    if(!body) return;
+    const isAuthedState = body.dataset.auth === 'true';
+    const menuNodes = findMenuUnavailableElements();
+    const footer = document.getElementById('footer');
+    if(isAuthedState){
+      menuNodes.forEach(node => node && node.style.removeProperty('display'));
+      if(footer){
+        footer.style.removeProperty('display');
+      }
+    } else {
+      menuNodes.forEach(node => {
+        if(node){
+          node.style.display = 'none';
+        }
+      });
+      if(footer){
+        footer.style.display = 'none';
+      }
+    }
+  }
+
+  function syncAuthVisibility(authed){
+    if(document.body){
+      document.body.dataset.auth = authed ? 'true' : 'false';
+    }
+    applyAuthVisibility();
+  }
+
   function getShellLayoutTokens(){
     const styles = getComputedStyle(document.documentElement);
     const read = (name) => parseFloat(styles.getPropertyValue(name)) || 0;
@@ -438,7 +477,7 @@
   }
 
   function renderFooter({authed=false, user='', onLogout}={}){
-    const host = document.getElementById('appFooter');
+    const host = document.getElementById('footer');
     if(!host) return;
     host.innerHTML = globalFooterHtml({authed, user});
     attachGlobalFooterHandlers(onLogout);
@@ -487,6 +526,7 @@
       }
     }
     renderFooter({authed, user, onLogout});
+    syncAuthVisibility(authed);
     logLayoutProbe();
   }
 

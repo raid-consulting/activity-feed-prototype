@@ -197,7 +197,7 @@ function createOverscrollHarness({
       return sentinel;
     },
     getElementById(id) {
-      if (id === 'appFooter') {
+      if (id === 'footer') {
         return footer;
       }
       return null;
