@@ -21,6 +21,14 @@
     --panel-pad:clamp(16px,2vw,20px);
     --panel-pad-mobile:clamp(12px,4vw,16px);
     --footer-safe-area:env(safe-area-inset-bottom);
+    --btn-height-sm:34px;
+    --btn-height-md:38px;
+    --btn-height-lg:42px;
+    --btn-height-max:44px;
+    --btn-height-sm-mobile:32px;
+    --btn-height-md-mobile:34px;
+    --btn-height-lg-mobile:36px;
+    --btn-height-max-mobile:38px;
   }
   @media (max-width:720px){
     :root{
@@ -28,6 +36,10 @@
       --shell-page-top-gap:var(--shell-page-top-gap-mobile);
       --shell-logo-size:var(--shell-logo-size-mobile);
       --panel-pad:var(--panel-pad-mobile);
+      --btn-height-sm:var(--btn-height-sm-mobile);
+      --btn-height-md:var(--btn-height-md-mobile);
+      --btn-height-lg:var(--btn-height-lg-mobile);
+      --btn-height-max:var(--btn-height-max-mobile);
     }
   }
   :root, html[data-theme="dark"] {
@@ -71,12 +83,16 @@
   .primary-menu[aria-hidden="true"]{justify-content:flex-end}
   .primary-menu::-webkit-scrollbar{display:none}
   .primary-menu__placeholder{opacity:.4;font-weight:600;font-size:14px}
-  .page-sections{display:grid;gap:var(--frame-gap);padding-top:var(--shell-page-top-gap);margin:0}
+  .page-sections{display:grid;gap:var(--frame-gap);margin:var(--shell-page-top-gap) 0 0;padding:0;position:relative;min-height:0}
   .page-sections > *{margin-block:0}
   .page-sections > :first-child{margin-block-start:0}
   .inner{display:grid;gap:16px;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:var(--panel-pad)}
 
-  .link{color:var(--ink);text-decoration:none;font-weight:700;padding:8px 14px;border-radius:10px;border:2px solid var(--line);background:var(--btn);display:inline-flex;align-items:center;justify-content:center;min-height:38px;white-space:nowrap;flex:0 0 auto}
+  .btn,
+  .btn-sm,
+  .link,
+  .footer-button{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:100%;min-height:0;max-height:var(--btn-height-max);gap:6px}
+  .link{color:var(--ink);text-decoration:none;font-weight:700;padding:0 clamp(12px,2vw,16px);border-radius:10px;border:2px solid var(--line);background:var(--btn);flex:0 0 auto;height:var(--btn-height-md)}
   .link:hover{background:var(--btn-hover)}
   .link[aria-current="page"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
   .toggle{width:54px;height:30px;border-radius:100px;border:2px solid var(--line);background:var(--btn);position:relative;cursor:pointer}
@@ -89,7 +105,7 @@
   .footer-meta{display:flex;flex-direction:column;gap:2px;color:var(--muted)}
   .footer-meta strong{color:var(--ink);font-size:clamp(14px,1.7vw,16px)}
   .footer-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-  .footer-button{appearance:none;border:2px solid var(--line);background:var(--btn);color:var(--ink);padding:8px 14px;border-radius:10px;font-weight:700;cursor:pointer;min-height:40px;display:inline-flex;align-items:center;justify-content:center}
+  .footer-button{appearance:none;border:2px solid var(--line);background:var(--btn);color:var(--ink);padding:0 clamp(12px,2vw,16px);border-radius:10px;font-weight:700;cursor:pointer;height:var(--btn-height-md)}
   .footer-button:hover{background:var(--btn-hover)}
   .footer-button[disabled]{opacity:.6;cursor:not-allowed}
   .footer-theme{display:flex;align-items:center;gap:10px}
@@ -104,9 +120,9 @@
   th{color:var(--ink)}
   tr:hover{background:var(--card-hover)}
   .actions{display:flex;gap:10px;flex-wrap:wrap}
-  .btn{appearance:none;border:2px solid var(--line);background:var(--btn);color:var(--text);padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer;min-height:44px}
+  .btn{appearance:none;border:2px solid var(--line);background:var(--btn);color:var(--text);padding:0 clamp(12px,2vw,16px);border-radius:10px;font-weight:700;cursor:pointer;height:var(--btn-height-lg)}
   .btn:hover{background:var(--btn-hover)}
-  .btn-sm{min-height:32px;padding:6px 12px;font-size:.92em}
+  .btn-sm{height:var(--btn-height-sm);padding:0 clamp(10px,1.6vw,14px);font-size:.92em}
   .detail{background:var(--detail);border:2px solid var(--line);border-radius:12px;padding:var(--panel-pad)}
   .ai-section{display:grid;gap:10px;margin-top:14px}
   .ai-field-grid{display:grid;gap:10px}
@@ -255,8 +271,48 @@
     const styles = getComputedStyle(document.documentElement);
     const read = (name) => parseFloat(styles.getPropertyValue(name)) || 0;
     return {
-      header: read('--shell-header-height')
+      header: read('--shell-header-height'),
+      gap: read('--shell-page-top-gap')
     };
+  }
+
+  const oversizeButtonsLogged = new WeakSet();
+  const BUTTON_SELECTORS = ['.btn', '.btn-sm', '.link', '.footer-button', '.pill', '.inline-alert button', '.empty-refresh'];
+
+  function describeButton(el){
+    if(!el) return 'unknown';
+    const dataTest = el.getAttribute('data-test');
+    if(dataTest) return `[data-test=${dataTest}]`;
+    if(el.id) return `#${el.id}`;
+    const name = el.getAttribute('name');
+    if(name) return `${el.tagName.toLowerCase()}[name="${name}"]`;
+    const className = typeof el.className === 'string'
+      ? el.className.trim().split(/\s+/).filter(Boolean).join('.')
+      : '';
+    if(className) return `${el.tagName.toLowerCase()}.${className}`;
+    const label = (el.textContent || '').trim();
+    if(label) return `${el.tagName.toLowerCase()}(${label.slice(0,24)})`;
+    return el.tagName.toLowerCase();
+  }
+
+  function scanButtonHeights(){
+    if(typeof document === 'undefined') return;
+    const nodes = [];
+    BUTTON_SELECTORS.forEach(selector => {
+      document.querySelectorAll(selector).forEach(el => nodes.push(el));
+    });
+    if(!nodes.length) return;
+    const unique = Array.from(new Set(nodes));
+    const mm = typeof matchMedia === 'function' ? matchMedia('(max-width:720px)') : null;
+    const cap = mm && mm.matches ? 38 : 44;
+    unique.forEach(el => {
+      if(!(el instanceof Element)) return;
+      const rect = el.getBoundingClientRect();
+      if(rect.height > cap + 0.5 && !oversizeButtonsLogged.has(el)){
+        oversizeButtonsLogged.add(el);
+        console.warn(`[ui] oversize button id=${describeButton(el)} h=${rect.height.toFixed(1)}px`);
+      }
+    });
   }
 
   function logLayoutProbe(){
@@ -265,36 +321,18 @@
     raf(() => {
       raf(() => {
         const header = document.querySelector('[data-shell-header]');
-        const menu = document.querySelector('[data-shell-menu]');
-        const logo = document.querySelector('[data-shell-logo]');
-        const title = document.querySelector('[data-shell-title]');
-        if(!header || !menu || !logo || !title) return;
-        const firstPanel = document.querySelector('[data-panel]');
-        const resetBtn = document.querySelector('[data-test-reset]');
+        const sections = document.querySelector('.page-sections');
+        if(!header || !sections){
+          scanButtonHeights();
+          return;
+        }
         const tokens = getShellLayoutTokens();
-        const headerRect = header.getBoundingClientRect();
-        const logoRect = logo.getBoundingClientRect();
-        const titleRect = title.getBoundingClientRect();
-        const menuBtn = menu.querySelector('.link') || null;
-        const menuBtnRect = menuBtn ? menuBtn.getBoundingClientRect() : {height:0};
-        const center = headerRect.left + headerRect.width / 2;
-        const titleCenter = titleRect.left + titleRect.width / 2;
-        const panelPad = firstPanel ? (parseFloat(getComputedStyle(firstPanel).paddingTop) || 0) : 0;
-        const resetRect = resetBtn ? resetBtn.getBoundingClientRect() : null;
-        const resetHeight = resetRect ? resetRect.height : 0;
-        const mm = typeof matchMedia === 'function' ? matchMedia('(max-width:720px)') : null;
-        const isMobile = !!(mm && mm.matches);
-        const within = (value, min, max) => value >= min && value <= max;
-        const headerOk = Math.abs(headerRect.height - tokens.header) <= 2;
-        const logoOk = within(logoRect.height, isMobile ? 30 : 46, isMobile ? 34 : 50);
-        const titleDelta = Math.abs(center - titleCenter);
-        const titleOk = titleDelta <= 4;
-        const menuOk = !menuBtn || within(menuBtnRect.height, 36, 40);
-        const panelOk = !firstPanel || within(panelPad, isMobile ? 12 : 16, isMobile ? 16 : 20);
-        const resetOk = !resetBtn || within(resetHeight, 32, 36);
-        const menuInside = header.contains(menu);
-        const ok = headerOk && logoOk && titleOk && menuOk && panelOk && resetOk && menuInside;
-        console.log(`[layout] banner_h=${headerRect.height.toFixed(1)}px logo_h=${logoRect.height.toFixed(1)}px title_center_delta=${titleDelta.toFixed(1)}px menu_btn_h=${menuBtnRect.height.toFixed(1)}px panel_pad=${panelPad.toFixed(1)}px reset_btn_h=${resetHeight.toFixed(1)}px ok=${ok}`);
+        const headerBottom = header.offsetTop + header.offsetHeight;
+        const sectionsOffset = sections.offsetTop;
+        const relativeOffset = sectionsOffset - headerBottom;
+        const okTop = Math.abs(relativeOffset - tokens.gap) <= 1;
+        console.log(`[layout] topInset=${tokens.gap.toFixed(1)}px sections.offsetTop=${sectionsOffset.toFixed(1)}px okTop=${okTop}`);
+        scanButtonHeights();
       });
     });
   }
