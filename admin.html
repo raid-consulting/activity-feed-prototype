@@ -97,6 +97,8 @@
   .page-sections > :first-child{margin-block-start:0}
   .inner{
     display:grid;
+    align-items:start;
+    align-content:start;
     gap:16px;
     background:var(--panel);
     border:2px solid var(--line);
@@ -144,6 +146,7 @@
   .btn:hover{background:var(--btn-hover)}
   .btn-sm{height:var(--btn-height-sm);padding:0 clamp(10px,1.6vw,14px);font-size:.92em}
   .detail{background:var(--detail);border:2px solid var(--line);border-radius:12px;padding:var(--panel-pad)}
+  #listPanel.detail{align-self:start}
   .ai-section{display:grid;gap:10px;margin-top:14px}
   .ai-field-grid{display:grid;gap:10px}
   .ai-field-grid .ai-field{display:grid;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px}
