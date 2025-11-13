@@ -11,11 +11,9 @@
     --focus:#6ea4e8;
     --page-pad:clamp(16px,3vw,28px);
     --frame-gap:clamp(12px,2.2vw,18px);
-    --shell-header-height:31.5px;
-    --shell-menu-height:45.5px;
+    --shell-header-height:77px;
     --shell-page-top-gap:18px;
-    --shell-header-height-mobile:27px;
-    --shell-menu-height-mobile:42.5px;
+    --shell-header-height-mobile:69.5px;
     --shell-page-top-gap-mobile:12px;
     --shell-header-pad-inline:clamp(12px,2.2vw,16px);
     --footer-safe-area:env(safe-area-inset-bottom);
@@ -24,7 +22,6 @@
   @media (max-width:720px){
     :root{
       --shell-header-height:var(--shell-header-height-mobile);
-      --shell-menu-height:var(--shell-menu-height-mobile);
       --shell-page-top-gap:var(--shell-page-top-gap-mobile);
     }
   }
@@ -54,12 +51,12 @@
   .frame > *{margin-block:0}
   .frame > :first-child{margin-block-start:0}
   .frame > :first-child + *{margin-block-start:0}
-  .global-shell{display:grid;gap:0}
-  .shell-banner,.primary-menu{background:var(--banner);border:2px solid var(--line);border-radius:12px;
-    padding:0 var(--shell-header-pad-inline);display:flex;align-items:center;width:100%;box-sizing:border-box}
-  .shell-banner{height:var(--shell-header-height);justify-content:space-between;gap:clamp(12px,2vw,18px)}
-  .primary-menu{height:var(--shell-menu-height);gap:10px;justify-content:flex-start;overflow-x:auto;flex-wrap:nowrap;margin:0;
-    scrollbar-width:none}
+  .global-shell{display:contents}
+  .app-header{background:var(--banner);border:2px solid var(--line);border-radius:12px;
+    padding:0 var(--shell-header-pad-inline);display:flex;align-items:center;width:100%;box-sizing:border-box;
+    justify-content:space-between;gap:clamp(12px,2vw,18px);height:var(--shell-header-height);min-height:0}
+  .primary-menu{gap:10px;justify-content:flex-end;overflow-x:auto;flex-wrap:nowrap;margin:0;
+    scrollbar-width:none;display:flex;align-items:center;flex:0 1 auto;padding:0}
   .primary-menu[aria-hidden="true"]{justify-content:flex-end}
   .primary-menu::-webkit-scrollbar{display:none}
   .primary-menu__placeholder{opacity:.4;font-weight:600;font-size:14px}
@@ -71,7 +68,7 @@
 
   /* Global navigation */
   .global-title{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.2px;
-    font-size:clamp(18px,2.2vw,21px);color:var(--ink);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    font-size:clamp(18px,2.2vw,21px);color:var(--ink);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
   .link{color:var(--ink);text-decoration:none;font-weight:700;padding:8px 12px;border-radius:10px;border:2px solid var(--line);background:var(--btn);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-height:40px;white-space:nowrap;flex:0 0 auto}
   .link:hover{background:var(--btn-hover)}
   .link[aria-current="page"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
@@ -314,10 +311,10 @@
     const navBody = navLinks || '<span class="primary-menu__placeholder">Menu unavailable</span>';
     return `
       <div class="global-shell" data-shell>
-        <div class="shell-banner" data-shell-header>
+        <header class="app-header" data-shell-header data-test="app-header">
           <div class="global-title">${svgPentagon()} Operations Console</div>
-        </div>
-        <nav class="primary-menu" ${navAttrs} data-shell-menu>${navBody}</nav>
+          <nav class="primary-menu" ${navAttrs} data-shell-menu data-test="app-menu">${navBody}</nav>
+        </header>
       </div>`;
   }
 
@@ -346,14 +343,15 @@
     const read = (name) => parseFloat(styles.getPropertyValue(name)) || 0;
     return {
       header: read('--shell-header-height'),
-      menu: read('--shell-menu-height'),
       gap: read('--shell-page-top-gap')
     };
   }
 
   function logLayoutProbe(){
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
+    const raf = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : null;
+    if(!raf) return;
+    raf(() => {
+      raf(() => {
         const header = document.querySelector('[data-shell-header]');
         const menu = document.querySelector('[data-shell-menu]');
         const pageRoot = document.querySelector('[data-page-root]');
@@ -361,16 +359,19 @@
         const firstSection = pageRoot.firstElementChild;
         if(!firstSection) return;
         const headerRect = header.getBoundingClientRect();
-        const menuRect = menu.getBoundingClientRect();
         const firstRect = firstSection.getBoundingClientRect();
+        const firstStyles = getComputedStyle(firstSection);
         const tokens = getShellLayoutTokens();
-        const gap = firstRect.top - menuRect.bottom;
-        const expectedStart = headerRect.top + tokens.header + tokens.menu + tokens.gap;
-        const ok = Math.abs(headerRect.height - tokens.header) <= 1
-          && Math.abs(menuRect.height - tokens.menu) <= 1
+        const gap = firstRect.top - headerRect.bottom;
+        const expectedStart = headerRect.top + tokens.header + tokens.gap;
+        const menuInside = header.contains(menu);
+        const marginTop = Math.abs(parseFloat(firstStyles.marginTop) || 0);
+        const ok = menuInside
+          && Math.abs(headerRect.height - tokens.header) <= 1
           && Math.abs(gap - tokens.gap) <= 1
-          && Math.abs(firstRect.top - expectedStart) <= 1;
-        console.log(`[layout] header=${headerRect.height.toFixed(1)}px menu=${menuRect.height.toFixed(1)}px gap=${gap.toFixed(1)}px startY=${firstRect.top.toFixed(1)}px expected=${expectedStart.toFixed(1)}px ok=${ok}`);
+          && Math.abs(firstRect.top - expectedStart) <= 1
+          && marginTop <= 0.5;
+        console.log(`[layout] header_h=${headerRect.height.toFixed(1)}px gap=${gap.toFixed(1)}px startY=${firstRect.top.toFixed(1)}px ok=${ok}`);
       });
     });
   }
@@ -416,6 +417,10 @@
     el.innerHTML = `
       ${globalMenuHtml({authed})}
       <section class="page-sections" data-page-root>${content}</section>`;
+    const pageRoot = el.querySelector('[data-page-root]');
+    if(pageRoot && pageRoot.firstElementChild){
+      pageRoot.firstElementChild.setAttribute('data-test', 'first-section');
+    }
     renderFooter({authed, user, onLogout});
     logLayoutProbe();
   }
@@ -425,7 +430,7 @@
     renderFrame({
       authed:false,
       content:`
-        <section class="inner">
+        <section class="inner" data-test="first-section">
           <div class="login-wrap card-plain">
             <h2 style="margin:0 0 6px 0;color:var(--ink)">Sign in</h2>
             <p class="meta" style="margin:0 0 12px 0">Enter your credentials to continue.</p>
@@ -482,7 +487,7 @@
       authed:true,
       user:currentUser,
       content:`
-        <section class="inner">
+        <section class="inner" data-test="first-section">
           <header class="section-banner">
             <h1 class="section-title">Activity Feed</h1>
             <p class="section-subtitle">Monitor inbox triage and recent automation updates.</p>
