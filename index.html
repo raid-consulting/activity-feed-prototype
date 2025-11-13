@@ -83,11 +83,18 @@
   .primary-menu[aria-hidden="true"]{justify-content:flex-end}
   .primary-menu::-webkit-scrollbar{display:none}
   .primary-menu__placeholder{opacity:.4}
-  .page-sections{display:grid;gap:var(--frame-gap);margin:var(--shell-page-top-gap) 0 0;padding:0;position:relative;min-height:0}
-  .page-sections > *{margin-block:0}
+  .page-sections{
+    display:grid;
+    gap:var(--frame-gap);
+    margin:0;
+    padding:var(--shell-page-top-gap) 0 0;
+    position:relative;
+    min-height:0;
+    width:100%;
+    box-sizing:border-box;
+  }
+  .page-sections > *{margin-block:0;scroll-margin-top:var(--shell-header-height)}
   .page-sections > :first-child{margin-block-start:0}
-  .panel{display:grid;grid-template-columns:1fr;gap:var(--space-3);background:var(--panel);
-    border:2px solid var(--line);border-radius:14px;padding:var(--panel-pad);position:relative}
 
   /* Global navigation */
   .btn,
@@ -470,10 +477,12 @@
         }
         const tokens = getShellLayoutTokens();
         const headerBottom = header.offsetTop + header.offsetHeight;
-        const sectionsOffset = sections.offsetTop;
-        const relativeOffset = sectionsOffset - headerBottom;
+        const sectionStyles = getComputedStyle(sections);
+        const paddingTop = parseFloat(sectionStyles.paddingTop) || 0;
+        const contentOffset = sections.offsetTop + paddingTop;
+        const relativeOffset = contentOffset - headerBottom;
         const okTop = Math.abs(relativeOffset - tokens.gap) <= 1;
-        console.log(`[layout] topInset=${tokens.gap.toFixed(1)}px sections.offsetTop=${sectionsOffset.toFixed(1)}px okTop=${okTop}`);
+        console.log(`[layout] topInset=${tokens.gap.toFixed(1)}px content.offsetTop=${contentOffset.toFixed(1)}px okTop=${okTop}`);
         scanButtonHeights();
       });
     });
@@ -528,9 +537,6 @@
     if(pageRoot && pageRoot.firstElementChild){
       const first = pageRoot.firstElementChild;
       first.setAttribute('data-test', 'first-section');
-      if(!first.hasAttribute('data-panel')){
-        first.setAttribute('data-panel', '');
-      }
     }
     renderFooter({authed, user, onLogout});
     syncAuthVisibility(authed);
@@ -542,20 +548,18 @@
     renderFrame({
       authed:false,
       content:`
-        <section class="panel" data-test="first-section" data-panel>
-          <div class="login-wrap card-plain">
-            <h2 style="margin:0 0 calc(var(--space-1) + var(--space-1) / 2) 0;color:var(--ink)">Sign in</h2>
-            <p class="meta" style="margin:0 0 var(--space-3) 0">Enter your credentials to continue.</p>
-            <div class="row">
-              <input id="user" class="input" placeholder="Username" autocomplete="username">
-              <input id="pass" class="input" placeholder="Password" type="password" autocomplete="current-password">
-            </div>
-            <div id="err" class="error" style="display:none">Invalid credentials</div>
-            <div style="display:flex;justify-content:flex-end;align-items:center;gap:calc(var(--space-2) + var(--space-1) / 2);margin-top:var(--space-3)">
-              <button class="btn" id="loginBtn">Login</button>
-            </div>
+        <div class="login-wrap card-plain" data-test="first-section">
+          <h2 style="margin:0 0 calc(var(--space-1) + var(--space-1) / 2) 0;color:var(--ink)">Sign in</h2>
+          <p class="meta" style="margin:0 0 var(--space-3) 0">Enter your credentials to continue.</p>
+          <div class="row">
+            <input id="user" class="input" placeholder="Username" autocomplete="username">
+            <input id="pass" class="input" placeholder="Password" type="password" autocomplete="current-password">
           </div>
-        </section>`
+          <div id="err" class="error" style="display:none">Invalid credentials</div>
+          <div style="display:flex;justify-content:flex-end;align-items:center;gap:calc(var(--space-2) + var(--space-1) / 2);margin-top:var(--space-3)">
+            <button class="btn" id="loginBtn">Login</button>
+          </div>
+        </div>`
     });
     document.getElementById('loginBtn').onclick = () => {
       const u = document.getElementById('user').value.trim();
@@ -599,36 +603,34 @@
       authed:true,
       user:currentUser,
       content:`
-        <section class="panel" data-test="first-section" data-panel>
-          <header class="section-banner">
-            <h1 class="section-title">Activity Feed</h1>
-            <p class="section-subtitle">Monitor inbox triage and recent automation updates.</p>
-          </header>
-          <div class="feed-content" id="feedContent">
-            <div class="stack" id="cardList"></div>
-          </div>
-          <div class="detail-view" id="detailView" aria-hidden="true">
-            <div class="detail-head">
-              <div class="crumbs">
-                <button type="button" id="detailBack">Activity feed</button>
-                <span>/</span>
-                <strong id="detailCrumb">Details</strong>
-              </div>
-              <button class="btn" type="button" id="detailBackBtn">Back to feed</button>
+        <header class="section-banner" data-test="first-section">
+          <h1 class="section-title">Activity Feed</h1>
+          <p class="section-subtitle">Monitor inbox triage and recent automation updates.</p>
+        </header>
+        <div class="feed-content" id="feedContent">
+          <div class="stack" id="cardList"></div>
+        </div>
+        <div class="detail-view" id="detailView" aria-hidden="true">
+          <div class="detail-head">
+            <div class="crumbs">
+              <button type="button" id="detailBack">Activity feed</button>
+              <span>/</span>
+              <strong id="detailCrumb">Details</strong>
             </div>
-            <article class="detail" aria-live="polite">
-              <div class="label">Email</div>
-              <h2 id="detailTitle">Select a notification</h2>
-              <p id="detailMeta">Pick an item from the feed to view more information.</p>
-              <p id="detailBody"></p>
-              <div class="actions">
-                <button class="btn" id="detailOpen">Open</button>
-                <button class="btn" id="detailAssign">Assign</button>
-                <button class="btn" id="detailArchive">Archive</button>
-              </div>
-            </article>
+            <button class="btn" type="button" id="detailBackBtn">Back to feed</button>
           </div>
-        </section>`
+          <article class="detail" aria-live="polite">
+            <div class="label">Email</div>
+            <h2 id="detailTitle">Select a notification</h2>
+            <p id="detailMeta">Pick an item from the feed to view more information.</p>
+            <p id="detailBody"></p>
+            <div class="actions">
+              <button class="btn" id="detailOpen">Open</button>
+              <button class="btn" id="detailAssign">Assign</button>
+              <button class="btn" id="detailArchive">Archive</button>
+            </div>
+          </article>
+        </div>`
     });
 
     const feedContent = document.getElementById('feedContent');

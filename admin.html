@@ -87,24 +87,15 @@
     flex-direction:column;
     justify-content:flex-start;
     gap:var(--frame-gap);
-    margin:var(--shell-page-top-gap) 0 0;
-    padding:0;
+    margin:0;
+    padding:var(--shell-page-top-gap) 0 0;
     position:relative;
     min-height:0;
+    width:100%;
+    box-sizing:border-box;
   }
-  .page-sections > *{margin-block:0}
+  .page-sections > *{margin-block:0;scroll-margin-top:var(--shell-header-height)}
   .page-sections > :first-child{margin-block-start:0}
-  .panel{
-    display:grid;
-    align-items:start;
-    align-content:start;
-    gap:var(--space-4);
-    background:var(--panel);
-    border:2px solid var(--line);
-    border-radius:14px;
-    padding:var(--panel-pad);
-    margin-block-start:0;
-  }
 
   .btn,
   .btn-sm,
@@ -176,8 +167,7 @@
     <div class="container">
       <div class="inner">
         <section class="page-sections" data-page-root>
-          <section class="panel" data-test="first-section" data-panel>
-      <header class="section-banner panel-head">
+      <header class="section-banner panel-head" data-test="first-section">
         <div class="panel-head__title">
           <h1 class="section-title">Mail Integration (Outlook)</h1>
           <p class="section-subtitle">Manage synced data and review connection health.</p>
@@ -225,7 +215,6 @@
           </form>
         </section>
       </div>
-          </section>
         </section>
       </div>
     </div>
@@ -394,10 +383,12 @@
         }
         const tokens = getShellLayoutTokens();
         const headerBottom = header.offsetTop + header.offsetHeight;
-        const sectionsOffset = sections.offsetTop;
-        const relativeOffset = sectionsOffset - headerBottom;
+        const sectionStyles = getComputedStyle(sections);
+        const paddingTop = parseFloat(sectionStyles.paddingTop) || 0;
+        const contentOffset = sections.offsetTop + paddingTop;
+        const relativeOffset = contentOffset - headerBottom;
         const okTop = Math.abs(relativeOffset - tokens.gap) <= 1;
-        console.log(`[layout] topInset=${tokens.gap.toFixed(1)}px sections.offsetTop=${sectionsOffset.toFixed(1)}px okTop=${okTop}`);
+        console.log(`[layout] topInset=${tokens.gap.toFixed(1)}px content.offsetTop=${contentOffset.toFixed(1)}px okTop=${okTop}`);
         scanButtonHeights();
       });
     });
