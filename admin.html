@@ -180,9 +180,6 @@
           <h1 class="section-title">Mail Integration (Outlook)</h1>
           <p class="section-subtitle">Manage synced data and review connection health.</p>
         </div>
-        <div class="actions">
-          <button class="btn btn-sm" id="reset" data-test-reset>Reset Test Data</button>
-        </div>
       </header>
 
       <div class="detail" id="listPanel">
@@ -707,7 +704,6 @@
     });
   }
 
-  document.getElementById('reset').onclick = ()=>{ localStorage.removeItem(DB_KEY); seedDB(); render(); showList(); };
   render();
   showList();
   }
