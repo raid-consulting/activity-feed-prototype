@@ -69,8 +69,9 @@
   #globalShell{display:contents}
   .global-shell{display:contents}
   .app-header{background:var(--banner);border:2px solid var(--line);border-radius:12px;
-    padding:var(--space-3) var(--shell-header-pad-inline);display:flex;align-items:center;width:100%;box-sizing:border-box;
-    gap:var(--space-3);height:var(--shell-header-height);min-height:0;position:relative}
+    padding:var(--space-3) 0;display:flex;justify-content:center;width:100%;box-sizing:border-box;
+    height:var(--shell-header-height);min-height:0;position:relative}
+  .app-header > .inner{display:flex;align-items:center;gap:var(--space-3);width:100%}
   .app-logo{width:var(--shell-logo-size);height:var(--shell-logo-size);flex:0 0 auto;
     display:flex;align-items:center;justify-content:center;color:var(--ink)}
   .app-logo svg{width:100%;height:100%;display:block}
@@ -93,7 +94,7 @@
   }
   .page-sections > *{margin-block:0}
   .page-sections > :first-child{margin-block-start:0}
-  .inner{
+  .panel{
     display:grid;
     align-items:start;
     align-content:start;
@@ -172,8 +173,10 @@
 <body>
   <main class="frame">
     <div id="globalShell"></div>
-    <section class="page-sections" data-page-root>
-      <section class="inner" data-test="first-section" data-panel>
+    <div class="container">
+      <div class="inner">
+        <section class="page-sections" data-page-root>
+          <section class="panel" data-test="first-section" data-panel>
       <header class="section-banner panel-head">
         <div class="panel-head__title">
           <h1 class="section-title">Mail Integration (Outlook)</h1>
@@ -222,8 +225,10 @@
           </form>
         </section>
       </div>
-      </section>
-    </section>
+          </section>
+        </section>
+      </div>
+    </div>
   </main>
 
   <footer id="footer" class="app-footer" role="contentinfo"></footer>
@@ -260,9 +265,11 @@
     return `
       <div class="global-shell" data-shell>
         <header class="app-header" data-shell-header data-test="app-header">
-          <div class="app-logo" data-shell-logo aria-hidden="true">${svgPentagon()}</div>
-          <div class="app-title" data-shell-title role="heading" aria-level="1">Operations Console</div>
-          <nav class="primary-menu" ${navAttrs} data-shell-menu data-test="app-menu">${navBody}</nav>
+          <div class="inner">
+            <div class="app-logo" data-shell-logo aria-hidden="true">${svgPentagon()}</div>
+            <div class="app-title" data-shell-title role="heading" aria-level="1">Operations Console</div>
+            <nav class="primary-menu" ${navAttrs} data-shell-menu data-test="app-menu">${navBody}</nav>
+          </div>
         </header>
       </div>`;
   }

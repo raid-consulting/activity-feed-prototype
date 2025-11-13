@@ -70,8 +70,9 @@
   .frame > :first-child + *{margin-block-start:0}
   .global-shell{display:contents}
   .app-header{background:var(--banner);border:2px solid var(--line);border-radius:12px;
-    padding:var(--space-3) var(--shell-header-pad-inline);display:flex;align-items:center;width:100%;box-sizing:border-box;
-    gap:var(--space-3);height:var(--shell-header-height);min-height:0;position:relative}
+    padding:var(--space-3) 0;display:flex;justify-content:center;width:100%;box-sizing:border-box;
+    height:var(--shell-header-height);min-height:0;position:relative}
+  .app-header > .inner{display:flex;align-items:center;gap:var(--space-3);width:100%}
   .app-logo{width:var(--shell-logo-size);height:var(--shell-logo-size);flex:0 0 auto;
     display:flex;align-items:center;justify-content:center;color:var(--ink)}
   .app-logo svg{width:100%;height:100%;display:block}
@@ -85,7 +86,7 @@
   .page-sections{display:grid;gap:var(--frame-gap);margin:var(--shell-page-top-gap) 0 0;padding:0;position:relative;min-height:0}
   .page-sections > *{margin-block:0}
   .page-sections > :first-child{margin-block-start:0}
-  .inner{display:grid;grid-template-columns:1fr;gap:var(--space-3);background:var(--panel);
+  .panel{display:grid;grid-template-columns:1fr;gap:var(--space-3);background:var(--panel);
     border:2px solid var(--line);border-radius:14px;padding:var(--panel-pad);position:relative}
 
   /* Global navigation */
@@ -340,9 +341,11 @@
     return `
       <div class="global-shell" data-shell>
         <header class="app-header" data-shell-header data-test="app-header">
-          <div class="app-logo" data-shell-logo aria-hidden="true">${svgPentagon()}</div>
-          <div class="app-title" data-shell-title role="heading" aria-level="1">Operations Console</div>
-          <nav class="primary-menu" ${navAttrs} data-shell-menu data-test="app-menu">${navBody}</nav>
+          <div class="inner">
+            <div class="app-logo" data-shell-logo aria-hidden="true">${svgPentagon()}</div>
+            <div class="app-title" data-shell-title role="heading" aria-level="1">Operations Console</div>
+            <nav class="primary-menu" ${navAttrs} data-shell-menu data-test="app-menu">${navBody}</nav>
+          </div>
         </header>
       </div>`;
   }
@@ -516,7 +519,11 @@
     if(!el) return;
     el.innerHTML = `
       ${globalMenuHtml({authed})}
-      <section class="page-sections" data-page-root>${content}</section>`;
+      <div class="container">
+        <div class="inner">
+          <section class="page-sections" data-page-root>${content}</section>
+        </div>
+      </div>`;
     const pageRoot = el.querySelector('[data-page-root]');
     if(pageRoot && pageRoot.firstElementChild){
       const first = pageRoot.firstElementChild;
@@ -535,7 +542,7 @@
     renderFrame({
       authed:false,
       content:`
-        <section class="inner" data-test="first-section" data-panel>
+        <section class="panel" data-test="first-section" data-panel>
           <div class="login-wrap card-plain">
             <h2 style="margin:0 0 calc(var(--space-1) + var(--space-1) / 2) 0;color:var(--ink)">Sign in</h2>
             <p class="meta" style="margin:0 0 var(--space-3) 0">Enter your credentials to continue.</p>
@@ -592,7 +599,7 @@
       authed:true,
       user:currentUser,
       content:`
-        <section class="inner" data-test="first-section" data-panel>
+        <section class="panel" data-test="first-section" data-panel>
           <header class="section-banner">
             <h1 class="section-title">Activity Feed</h1>
             <p class="section-subtitle">Monitor inbox triage and recent automation updates.</p>
