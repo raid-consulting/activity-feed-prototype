@@ -1,0 +1,41 @@
+/* Global typography */
+html, body {
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+/* Neutralize component overrides */
+h1, h2, h3, h4, h5, h6,
+p, small, label,
+.card .title, .banner .title, .detail .title,
+.menu a, nav a,
+.badge, .tag, .pill,
+table, th, td,
+button, .button, .btn,
+input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: inherit;
+}
+
+/* Official heading sizes */
+h1 {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+h2 {
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+/* Interactive controls */
+button, .button, .btn, input[type="submit"], input[type="button"] {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+}
