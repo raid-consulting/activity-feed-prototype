@@ -83,10 +83,27 @@
   .primary-menu[aria-hidden="true"]{justify-content:flex-end}
   .primary-menu::-webkit-scrollbar{display:none}
   .primary-menu__placeholder{opacity:.4;font-weight:600;font-size:14px}
-  .page-sections{display:grid;gap:var(--frame-gap);margin:var(--shell-page-top-gap) 0 0;padding:0;position:relative;min-height:0}
+  .page-sections{
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-start;
+    gap:var(--frame-gap);
+    margin:var(--shell-page-top-gap) 0 0;
+    padding:0;
+    position:relative;
+    min-height:0;
+  }
   .page-sections > *{margin-block:0}
   .page-sections > :first-child{margin-block-start:0}
-  .inner{display:grid;gap:16px;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:var(--panel-pad)}
+  .inner{
+    display:grid;
+    gap:16px;
+    background:var(--panel);
+    border:2px solid var(--line);
+    border-radius:14px;
+    padding:var(--panel-pad);
+    margin-block-start:0;
+  }
 
   .btn,
   .btn-sm,
