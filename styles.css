@@ -53,13 +53,6 @@ body {
   gap: 0.75rem;
 }
 
-.page-hero-logo {
-  display: block;
-  max-width: 220px;
-  height: auto;
-  margin-bottom: 0.5rem;
-}
-
 .page-hero-title {
   margin: 0;
   font-size: 1.4rem;
@@ -105,11 +98,6 @@ body {
     align-items: stretch;
     padding: 1.25rem 1.5rem;
     gap: 1.25rem;
-  }
-
-  .page-hero-logo {
-    max-width: 180px;
-    margin-bottom: 0.25rem;
   }
 
   .page-hero-login {
@@ -176,10 +164,6 @@ h2 {
 .app-header {
   background-color: var(--blomfelt-white);
   color: var(--blomfelt-green);
-}
-
-body.page-login .app-logo {
-  display: none;
 }
 
 .app-title,
