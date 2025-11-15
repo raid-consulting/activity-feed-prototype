@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -117,11 +117,6 @@
   .footer-button{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:100%;min-height:0;gap:calc(var(--space-1) + var(--space-1) / 2)}
   .link{color:inherit;text-decoration:none;flex:0 0 auto}
   .link[aria-current="page"]{font-weight:600}
-  .toggle{width:54px;height:30px;border-radius:100px;border:2px solid var(--line);background:var(--btn);position:relative;cursor:pointer}
-  .toggle:hover{background:var(--btn-hover)}
-  .toggle:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
-  .knob{width:22px;height:22px;border-radius:50%;background:var(--ink);position:absolute;top:50%;transform:translateY(-50%);left:4px;transition:left .2s}
-  html[data-theme="light"] .knob{left:28px}
   .app-footer{position:sticky;bottom:0;background:var(--banner);border-top:2px solid var(--line);padding:var(--space-4) 0;
     padding-bottom:calc(var(--space-4) + var(--footer-safe-area));width:100%;box-sizing:border-box;z-index:100;box-shadow:0 -6px 18px rgba(6,11,20,.24);margin:0}
   .app-footer > .inner{display:flex;flex-wrap:wrap;gap:var(--space-3);align-items:center;justify-content:space-between}
@@ -129,8 +124,6 @@
   .footer-meta strong{color:var(--ink)}
   .footer-actions{display:flex;gap:var(--space-3);align-items:center;flex-wrap:wrap}
   .footer-button{flex:0 0 auto}
-  .footer-theme{display:flex;align-items:center;gap:calc(var(--space-2) + var(--space-1) / 2)}
-  .footer-theme-label{color:var(--muted)}
 
   .section-banner{display:flex;align-items:center;justify-content:space-between;gap:calc(var(--space-3) + var(--space-1) / 2);background:var(--banner);border:2px solid var(--line);border-radius:12px;padding:var(--panel-pad)}
   .panel-head{align-items:flex-start;flex-wrap:wrap;gap:var(--gap)}
@@ -285,7 +278,6 @@
 
   function globalFooterHtml({authed=false, user=''}={}){
     const displayName = authed && user ? escapeHtml(user) : '—';
-    const themeLabel = document.documentElement.getAttribute('data-theme')==='light' ? 'Light' : 'Dark';
     const logoutAttrs = authed ? '' : ' disabled aria-disabled="true"';
     return `
       <div class="inner">
@@ -295,12 +287,6 @@
         </div>
         <div class="footer-actions">
           <button class="footer-button btn btn-secondary" type="button" id="logoutBtn"${logoutAttrs}>Logout</button>
-          <div class="footer-theme">
-            <span class="footer-theme-label" id="themeLabel">${themeLabel}</span>
-            <button class="toggle" type="button" id="themeToggle" aria-pressed="false">
-              <span class="knob"></span>
-            </button>
-          </div>
         </div>
       </div>`;
   }
@@ -429,14 +415,6 @@
   }
 
   function attachGlobalFooterHandlers(onLogout){
-    syncThemeControls();
-    const toggle = document.getElementById('themeToggle');
-    if(toggle){
-      toggle.addEventListener('click', () => {
-        const current = document.documentElement.getAttribute('data-theme') || 'dark';
-        setTheme(current === 'dark' ? 'light' : 'dark');
-      });
-    }
     const logout = document.getElementById('logoutBtn');
     if(logout && !logout.disabled){
       logout.addEventListener('click', () => {
@@ -516,31 +494,7 @@
     reassessEmail
   };
   function fmt(ts){return new Date(ts).toLocaleString()}
-  function setTheme(theme){
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('notif-theme', theme);
-    syncThemeControls();
-  }
-  function syncThemeControls(){
-    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
-    const label = document.getElementById('themeLabel');
-    if(label){
-      label.textContent = currentTheme === 'light' ? 'Light' : 'Dark';
-    }
-    const toggle = document.getElementById('themeToggle');
-    if(toggle){
-      const isLight = currentTheme === 'light';
-      toggle.setAttribute('aria-pressed', isLight ? 'true' : 'false');
-      toggle.setAttribute('aria-label', isLight ? 'Switch to dark theme' : 'Switch to light theme');
-    }
-  }
-  (function initTheme(){
-    const stored = localStorage.getItem('notif-theme');
-    if(stored){ setTheme(stored); } else {
-      const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
-      setTheme(prefersLight ? 'light' : 'dark');
-    }
-  })();
+  document.documentElement.setAttribute('data-theme', 'light');
   const authed = isAuthed();
   const currentUser = authed ? getCurrentUser() : '';
   const globalShellHost = document.getElementById('globalShell');
