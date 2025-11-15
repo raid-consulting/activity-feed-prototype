@@ -19,6 +19,17 @@ body {
   color: var(--text);
 }
 
+button,
+[role="button"],
+a,
+.chip,
+.pill,
+.filter-pill,
+.review-item,
+.activity-card {
+  cursor: pointer;
+}
+
 :is(
     .contact-bar > .inner,
     header.app-header > .inner,
@@ -186,8 +197,9 @@ h2 {
   background-color: var(--blomfelt-green, #2c403a);
   color: var(--blomfelt-white, #ffffff);
   border: none;
-  border-radius: 0;
-  box-shadow: none;
+  border-radius: 16px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+  margin-bottom: 1.5rem;
 }
 
 .section-banner .panel-head__title,
@@ -419,12 +431,20 @@ input[type="search"]:focus-visible {
   font-size: 0.85rem;
   font-weight: 500;
   line-height: 1.2;
-  cursor: pointer;
   gap: 0.35rem;
 }
 
 .filter-chip--active,
 .pill[aria-pressed="true"] {
+  background-color: var(--blomfelt-green, #2c403a);
+  color: var(--blomfelt-white, #ffffff);
+  border-color: var(--blomfelt-green, #2c403a);
+}
+
+.filter-chip:hover,
+.pill:hover,
+.filter-chip:focus-visible,
+.pill:focus-visible {
   background-color: var(--blomfelt-green, #2c403a);
   color: var(--blomfelt-white, #ffffff);
   border-color: var(--blomfelt-green, #2c403a);
@@ -448,6 +468,14 @@ input[type="search"]:focus-visible {
 .filter-chip--active .pill-count {
   background: rgba(255, 255, 255, 0.24);
   color: var(--blomfelt-white, #ffffff);
+}
+
+.ai-review-page .detail {
+  background-color: var(--detail, #f5f5f5);
+}
+
+.ai-review-page #detailView {
+  scroll-margin-top: 140px;
 }
 
 .app-header .primary-menu {
