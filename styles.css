@@ -569,6 +569,128 @@ button.card:hover .chev {
   opacity: 0.6;
 }
 
+.activity-feed {
+  margin-top: 1.5rem;
+}
+
+.activity-groups {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space-4) + var(--space-2));
+}
+
+.activity-group {
+  background-color: var(--blomfelt-white, #ffffff);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 18px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.activity-group-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: calc(var(--space-4) + var(--space-1) / 2);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.activity-group-header-main {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space-1) + var(--space-1) / 2);
+  min-width: 0;
+}
+
+.activity-group-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--blomfelt-green, #2c403a);
+}
+
+.activity-group-description {
+  margin: 0;
+  font-size: 0.95rem;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.activity-group-meta {
+  font-size: 0.9rem;
+  color: rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+}
+
+.activity-group-count {
+  font-weight: 600;
+  color: var(--blomfelt-green, #2c403a);
+}
+
+.activity-group-items {
+  display: flex;
+  flex-direction: column;
+}
+
+.activity-group .activity-items {
+  display: flex;
+  flex-direction: column;
+}
+
+.activity-group .card {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background-color: transparent;
+  padding: calc(var(--space-4) + var(--space-1) / 2);
+  margin: 0;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.activity-group .card + .card {
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.activity-group .card:first-child {
+  border-top-left-radius: 18px;
+  border-top-right-radius: 18px;
+}
+
+.activity-group .card:last-child {
+  border-bottom-left-radius: 18px;
+  border-bottom-right-radius: 18px;
+}
+
+.activity-group .card:hover {
+  transform: none;
+  box-shadow: none;
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.activity-group .card:active {
+  transform: none;
+  box-shadow: none;
+}
+
+.activity-group .card:focus-visible {
+  outline-offset: 2px;
+}
+
+.activity-group .card .card-stripe {
+  border-radius: 0;
+}
+
+.activity-group .card:first-child .card-stripe {
+  border-top-left-radius: 18px;
+  border-top-right-radius: 18px;
+}
+
+.activity-group .card:last-child .card-stripe {
+  border-bottom-left-radius: 18px;
+  border-bottom-right-radius: 18px;
+}
+
 @media (max-width: 720px) {
   .page-hero-inner {
     flex-direction: column;
