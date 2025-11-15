@@ -27,7 +27,7 @@
       key,
       title: copy.title,
       description: copy.desc,
-      stripeClass: `card-stripe-${key}`,
+      accentClass: `category-${key}`,
       ariaLabel: copy.title
     };
   }

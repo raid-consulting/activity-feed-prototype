@@ -25,7 +25,6 @@
     --panel-pad:var(--space-4);
     --panel-pad-mobile:var(--space-3);
     --footer-safe-area:env(safe-area-inset-bottom);
-    --card-stripe:calc(var(--space-1) + var(--space-1) / 2);
     --btn-height-sm:34px;
     --btn-height-md:38px;
     --btn-height-lg:42px;
@@ -233,60 +232,6 @@
     gap:0;
   }
 
-  .ai-review-group .review-item{
-    border:0;
-    border-radius:0;
-    box-shadow:none;
-    background-color:transparent;
-    padding:calc(var(--space-4) + var(--space-1) / 2);
-    margin:0;
-    align-items:flex-start;
-    text-align:left;
-  }
-
-  .ai-review-group .review-item + .review-item{
-    border-top:1px solid rgba(0,0,0,0.06);
-  }
-
-  .ai-review-group .review-item:first-child{
-    border-top-left-radius:18px;
-    border-top-right-radius:18px;
-  }
-
-  .ai-review-group .review-item:last-child{
-    border-bottom-left-radius:18px;
-    border-bottom-right-radius:18px;
-  }
-
-  .ai-review-group .review-item:hover{
-    transform:none;
-    box-shadow:none;
-    background-color:rgba(0,0,0,0.02);
-  }
-
-  .ai-review-group .review-item:active{
-    transform:none;
-    box-shadow:none;
-  }
-
-  .ai-review-group .review-item:focus-visible{
-    outline-offset:2px;
-  }
-
-  .ai-review-group .review-item .card-stripe{
-    border-radius:0;
-  }
-
-  .ai-review-group .review-item:first-child .card-stripe{
-    border-top-left-radius:18px;
-    border-top-right-radius:18px;
-  }
-
-  .ai-review-group .review-item:last-child .card-stripe{
-    border-bottom-left-radius:18px;
-    border-bottom-right-radius:18px;
-  }
-  
 
   .empty{padding:calc(var(--space-4) * 2);border:2px dashed var(--line);border-radius:12px;text-align:center;color:var(--muted);background:var(--card);display:grid;gap:var(--space-3);justify-items:center}
   .empty[hidden]{display:none!important}
@@ -380,7 +325,7 @@
 
       <div class="detail-view" id="detailView" aria-hidden="true">
         <div class="detail-head">
-          <div class="crumbs">
+          <div class="crumbs sandcrumbs">
             <button type="button" id="detailBack">AI review</button>
             <span>/</span>
             <strong id="detailCrumb">Details</strong>
@@ -709,7 +654,7 @@
   const AICategory = window.AICategory || {
     AI_CATEGORY_COPY: {},
     normalizeCategory: () => 'grey',
-    getCategoryPresentation: () => ({ key: 'grey', title: 'Unassessed', description: 'Awaiting AI review.', stripeClass: 'card-stripe-grey', ariaLabel: 'Unassessed' })
+    getCategoryPresentation: () => ({ key: 'grey', title: 'Unassessed', description: 'Awaiting AI review.', accentClass: 'category-grey', ariaLabel: 'Unassessed' })
   };
 
   const CATEGORY_INFO={
@@ -1575,6 +1520,7 @@
         const groupItems=filtered.filter(item=>getCategory(item)===groupKey);
         if(!groupItems.length) return '';
         const presentation=AICategory.getCategoryPresentation(groupKey);
+        const headerClass=presentation.accentClass || `category-${groupKey}`;
         const cards=groupItems.map(item=>{
           const ai=item.ai||{};
           const synopsis=ai.notes || item.aiSynopsis || 'Metadata pending for this message.';
@@ -1585,12 +1531,12 @@
             metaParts.push('Manual override');
           }
           const itemCategory=getCategory(item);
-          const stripe=AICategory.getCategoryPresentation(itemCategory);
-          const stripeClass=stripe.stripeClass || `card-stripe-${itemCategory}`;
+          const itemPresentation=AICategory.getCategoryPresentation(itemCategory);
+          const chipClass=itemPresentation.accentClass || `category-${itemCategory}`;
           const timestamp=formatTime(item.received);
           const timestampIso=new Date(item.received).toISOString();
+          const metaText=metaParts.join(' • ');
           return `<button class="card review-item" data-id="${item.id}" type="button" role="listitem">
-            <span class="card-stripe ${stripeClass}" aria-label="${escapeHtml(stripe.title)}"></span>
             <div class="card-inner">
               <div class="card-header">
                 <div class="card-header-left">
@@ -1601,13 +1547,16 @@
               <div class="card-body">
                 <p class="card-description description">${escapeHtml(synopsis)}</p>
               </div>
-              <div class="card-meta meta">${metaParts.join(' • ')}</div>
+              <div class="card-meta meta">
+                <span class="ai-category-chip ${chipClass}">${escapeHtml(itemPresentation.title)}</span>
+                <span>${metaText}</span>
+              </div>
             </div>
             <span class="chev">${'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>'}</span>
           </button>`;
         }).join('');
         return `<section class="ai-review-group" data-ai-review-group="${groupKey}">
-          <header class="ai-review-group-header">
+          <header class="ai-review-group-header ${headerClass}">
             <div class="ai-review-group-header-main">
               <h3 class="ai-review-group-title">${escapeHtml(presentation.title)}</h3>
               <p class="ai-review-group-description">${escapeHtml(presentation.description)}</p>
