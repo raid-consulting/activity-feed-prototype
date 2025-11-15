@@ -87,8 +87,8 @@
     height:var(--shell-header-height);min-height:0;position:relative}
   .app-header > .inner{display:flex;align-items:center;gap:var(--space-3);width:100%}
   .app-logo{width:var(--shell-logo-size);height:var(--shell-logo-size);flex:0 0 auto;
-    display:flex;align-items:center;justify-content:center;color:var(--ink)}
-  .app-logo svg{width:100%;height:100%;display:block}
+    display:flex;align-items:center;justify-content:center;color:var(--ink);text-decoration:none}
+  .app-logo img{display:block;max-height:100%;width:auto}
   .app-title{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;
     color:var(--ink);white-space:nowrap;pointer-events:none}
   .primary-menu{gap:calc(var(--space-2) + var(--space-1) / 2);justify-content:flex-end;overflow-x:auto;flex-wrap:nowrap;margin:0;margin-left:auto;
@@ -241,7 +241,6 @@
 <script src="manual-override-service.js"></script>
 <script>
   const DB_KEY='faux-emails', AUTH_KEY='faux-auth';
-  function svgPentagon(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 6-3.4 10.5H6.4L3 8l9-6z"/></svg>'; }
   function escapeHtml(str=''){
     const map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
     return String(str).replace(/[&<>"']/g, ch => map[ch]);
@@ -269,7 +268,9 @@
       <div class="global-shell" data-shell>
         <header class="app-header" data-shell-header data-test="app-header">
           <div class="inner">
-            <div class="app-logo" data-shell-logo aria-hidden="true">${svgPentagon()}</div>
+            <a class="app-logo" data-shell-logo href="index.html" aria-label="Blomfelt">
+              <img src="design-manual/Asset 1_green.svg" alt="Blomfelt logo" />
+            </a>
             <div class="app-title" data-shell-title role="heading" aria-level="1">Operations Console</div>
             <nav class="primary-menu" ${navAttrs} data-shell-menu data-test="app-menu">${navBody}</nav>
           </div>
