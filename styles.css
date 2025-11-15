@@ -7,6 +7,16 @@
   --space-4: 16px;
   --layout-max-width: 1200px;
   --layout-horizontal-pad: var(--shell-header-pad-inline, var(--space-4));
+  --surface-radius: 12px;
+  --surface-padding: calc(var(--space-4) + var(--space-1) / 2);
+  --surface-gap: calc(var(--space-2) + var(--space-1) / 2);
+  --surface-border-color: rgba(15, 23, 42, 0.12);
+  --surface-background: var(--blomfelt-white, #ffffff);
+}
+
+html[data-theme="dark"] {
+  --surface-border-color: rgba(244, 247, 251, 0.18);
+  --surface-background: rgba(26, 35, 48, 1);
 }
 
 body,
