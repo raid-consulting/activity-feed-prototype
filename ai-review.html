@@ -117,11 +117,15 @@
   .footer-button,
   .pill,
   .inline-alert button,
-  .empty-refresh{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:100%;min-height:0;max-height:var(--btn-height-max);gap:calc(var(--space-1) + var(--space-1) / 2)}
-  .link{color:var(--ink);text-decoration:none;padding:0 var(--space-4);border-radius:10px;border:2px solid var(--line);
-    background:var(--btn);cursor:pointer;flex:0 0 auto;height:var(--btn-height-md)}
-  .link:hover{background:var(--btn-hover)}
-  .link[aria-current="page"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .btn,
+  .btn-sm,
+  .link,
+  .footer-button,
+  .pill,
+  .inline-alert button,
+  .empty-refresh{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:100%;min-height:0;gap:calc(var(--space-1) + var(--space-1) / 2)}
+  .link{color:inherit;text-decoration:none;flex:0 0 auto}
+  .link[aria-current="page"]{font-weight:600}
   .toggle{width:54px;height:30px;border-radius:100px;border:2px solid var(--line);background:var(--btn);position:relative;cursor:pointer}
   .toggle:hover{background:var(--btn-hover)}
   .toggle:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
@@ -134,10 +138,7 @@
   .footer-meta{display:flex;flex-direction:column;gap:calc(var(--space-1) / 2);color:var(--muted)}
   .footer-meta strong{color:var(--ink)}
   .footer-actions{display:flex;gap:var(--space-3);align-items:center;flex-wrap:wrap}
-  .footer-button{appearance:none;border:2px solid var(--line);background:var(--btn);color:var(--ink);
-    padding:0 var(--space-4);border-radius:10px;cursor:pointer;height:var(--btn-height-md)}
-  .footer-button:hover{background:var(--btn-hover)}
-  .footer-button[disabled]{opacity:.6;cursor:not-allowed}
+  .footer-button{flex:0 0 auto}
   .footer-theme{display:flex;align-items:center;gap:calc(var(--space-2) + var(--space-1) / 2)}
   .footer-theme-label{color:var(--muted)}
 
@@ -150,20 +151,8 @@
   .review-category h2{margin:0 0 var(--space-3) 0}
   .controls{display:flex;flex-wrap:wrap;gap:var(--space-3);justify-content:space-between;align-items:center}
   .filters{display:flex;flex-wrap:wrap;gap:var(--space-2)}
-  .pill{appearance:none;border:2px solid var(--line);background:var(--btn);color:var(--text);
-    padding:0 calc(var(--space-3) + var(--space-1) / 2);border-radius:999px;gap:var(--space-2);cursor:pointer;height:var(--btn-height-md)}
-  .pill:hover{background:var(--btn-hover)}
-  .pill[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-  .pill-count{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;border-radius:999px;
-    background:rgba(0,0,0,.25);color:var(--ink);padding:0 calc(var(--space-1) + var(--space-1) / 2)}
-  .pill[aria-pressed="true"] .pill-count{background:rgba(0,0,0,.3);color:var(--bg)}
-  .pill-green[aria-pressed="true"]{background:var(--green);border-color:var(--green);color:#0d1b12}
-  .pill-red[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:#2c0908}
-  .pill-blue[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:#081d2c}
-  .pill-grey[aria-pressed="true"]{background:var(--grey);border-color:var(--grey);color:#07090d}
-  .pill label{font-weight:inherit}
   .search{position:relative;display:inline-flex;align-items:center}
-  .search input{width:min(260px,70vw);padding:calc(var(--space-2) + var(--space-1) / 2) var(--space-3);border:2px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);font:inherit}
+  .search input{width:min(260px,70vw)}
   .search input::placeholder{color:var(--muted)}
 
   .sr-only{position:absolute;clip:rect(1px,1px,1px,1px);clip-path:inset(0 0 99.9% 99.9%);height:1px;width:1px;overflow:hidden;padding:0;border:0}
@@ -201,8 +190,6 @@
   .inline-alert[data-banner-kind="cached"][data-banner-visible="true"]{display:flex}
   .inline-alert__message{flex:1;min-width:0}
   .inline-alert__actions{display:flex;gap:calc(var(--space-2) + var(--space-1) / 2)}
-  .inline-alert button{appearance:none;border:2px solid var(--line);background:var(--btn);color:var(--ink);padding:0 calc(var(--space-3) + var(--space-1) / 2);border-radius:999px;cursor:pointer;height:var(--btn-height-md)}
-  .inline-alert button:hover{background:var(--btn-hover)}
   .inline-empty{padding:calc(var(--space-4) + var(--space-2));border:2px dashed var(--line);border-radius:12px;text-align:center;color:var(--muted);background:var(--card)}
 
   .detail-view{display:none;grid-template-columns:1fr;gap:var(--space-4)}
@@ -217,10 +204,7 @@
   .detail h2{margin:0 0 var(--space-2) 0;color:var(--ink)}
   .detail p{margin:0 0 var(--space-3) 0}
   .detail .actions{display:flex;gap:calc(var(--space-2) + var(--space-1) / 2);flex-wrap:wrap}
-  .btn{appearance:none;border:2px solid var(--line);background:var(--btn);color:var(--text);
-    padding:0 var(--space-4);border-radius:10px;cursor:pointer;height:var(--btn-height-lg)}
-  .btn-sm{height:var(--btn-height-sm);padding:0 calc(var(--space-3) + var(--space-1) / 2)}
-  .btn:hover{background:var(--btn-hover)}
+  .btn-sm{min-height:0}
   .detail-tag{display:inline-flex;align-items:center;gap:var(--space-2);padding:calc(var(--space-1) + var(--space-1) / 2) var(--space-3);border-radius:999px;background:var(--card);border:1px solid var(--line);color:var(--ink)}
   .detail-tag::before{content:'';width:10px;height:10px;border-radius:50%}
   .detail-tag.green::before{background:var(--green)}
@@ -249,11 +233,11 @@
 
       <div class="controls" aria-label="AI review filters">
         <div class="filters" role="toolbar" aria-label="Category filters">
-          <button class="pill" type="button" data-filter="all" aria-pressed="true">All <span class="pill-count" data-count="all">0</span></button>
-          <button class="pill pill-green" type="button" data-filter="green" aria-pressed="false">Green <span class="pill-count" data-count="green">0</span></button>
-          <button class="pill pill-blue" type="button" data-filter="blue" aria-pressed="false">Blue <span class="pill-count" data-count="blue">0</span></button>
-          <button class="pill pill-red" type="button" data-filter="red" aria-pressed="false">Red <span class="pill-count" data-count="red">0</span></button>
-          <button class="pill pill-grey" type="button" data-filter="grey" aria-pressed="false">Grey <span class="pill-count" data-count="grey">0</span></button>
+          <button class="pill filter-chip" type="button" data-filter="all" aria-pressed="true">All <span class="pill-count" data-count="all">0</span></button>
+          <button class="pill filter-chip pill-green" type="button" data-filter="green" aria-pressed="false">Green <span class="pill-count" data-count="green">0</span></button>
+          <button class="pill filter-chip pill-blue" type="button" data-filter="blue" aria-pressed="false">Blue <span class="pill-count" data-count="blue">0</span></button>
+          <button class="pill filter-chip pill-red" type="button" data-filter="red" aria-pressed="false">Red <span class="pill-count" data-count="red">0</span></button>
+          <button class="pill filter-chip pill-grey" type="button" data-filter="grey" aria-pressed="false">Grey <span class="pill-count" data-count="grey">0</span></button>
         </div>
         <label class="search">
           <span class="sr-only" id="searchLabel">Search keywords</span>
@@ -265,7 +249,7 @@
         <div class="inline-alert" id="degradedBanner" data-banner-kind="cached" hidden role="status" aria-live="polite">
           <span class="inline-alert__message" id="degradedMessage">Showing cached results while we reconnect…</span>
           <div class="inline-alert__actions">
-            <button type="button" id="degradedRetry">Retry</button>
+            <button class="btn btn-secondary" type="button" id="degradedRetry">Retry</button>
           </div>
         </div>
         <div class="loading" id="loadingState" role="status">Loading review signals…</div>
@@ -273,11 +257,11 @@
         <div class="inline-empty" id="noResultsNotice" hidden role="status" aria-live="polite">No review items match your filters.</div>
         <div class="empty" id="emptyState" data-empty-banner="true" hidden role="region" aria-label="AI review empty state" tabindex="-1">
           <p>No items to review yet.</p>
-          <button class="empty-refresh" type="button" id="emptyRefresh">Refresh now</button>
+          <button class="empty-refresh btn btn-secondary" type="button" id="emptyRefresh">Refresh now</button>
         </div>
         <div class="error" id="errorState" data-banner-kind="error" hidden role="region" aria-label="AI review error state" tabindex="-1">
           <p>We hit a snag loading review signals.</p>
-          <button class="empty-refresh" type="button" id="errorRetry">Try again</button>
+          <button class="empty-refresh btn btn-secondary" type="button" id="errorRetry">Try again</button>
         </div>
       </div>
 
@@ -288,7 +272,7 @@
             <span>/</span>
             <strong id="detailCrumb">Details</strong>
           </div>
-          <button class="btn" type="button" id="detailBackBtn">Back to list</button>
+          <button class="btn btn-secondary" type="button" id="detailBackBtn">Back to list</button>
         </div>
         <article class="detail" aria-live="polite">
           <div class="label">Message</div>
@@ -300,10 +284,10 @@
           <p class="meta" id="detailAiRequirements"></p>
           <p id="detailBody"></p>
           <div class="actions">
-            <button class="btn" id="detailOpen">Open in inbox</button>
-            <button class="btn" id="detailApprove">Approve automation</button>
-            <button class="btn" id="detailArchive">Archive</button>
-            <button class="btn" id="detailReassess">Reassess AI metadata</button>
+            <button class="btn btn-secondary" id="detailOpen">Open in inbox</button>
+            <button class="btn btn-primary" id="detailApprove">Approve automation</button>
+            <button class="btn btn-secondary" id="detailArchive">Archive</button>
+            <button class="btn btn-secondary" id="detailReassess">Reassess AI metadata</button>
           </div>
         </article>
       </div>
@@ -440,7 +424,8 @@
         ].map(({href,label})=>{
           const isCurrent=currentPage===href.toLowerCase();
           const aria=isCurrent?' aria-current="page"':'';
-          return `<a class="link" href="${href}"${aria}>${label}</a>`;
+          const btnClass=isCurrent?'link btn btn-primary':'link btn btn-secondary';
+          return `<a class="${btnClass}" href="${href}"${aria}>${label}</a>`;
         }).join('')
       : '';
     const navAttrs=navLinks
@@ -471,7 +456,7 @@
         <strong>${displayName}</strong>
       </div>
       <div class="footer-actions">
-        <button class="footer-button" type="button" id="logoutBtn"${logoutAttrs}>Logout</button>
+        <button class="footer-button btn btn-secondary" type="button" id="logoutBtn"${logoutAttrs}>Logout</button>
         <div class="footer-theme">
           <span class="footer-theme-label" id="themeLabel">${themeLabel}</span>
           <button class="toggle" type="button" id="themeToggle" aria-pressed="false">
