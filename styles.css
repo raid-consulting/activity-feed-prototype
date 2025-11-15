@@ -19,7 +19,7 @@ body {
   color: var(--text);
 }
 
-:is(header.app-header, .container .inner) {
+.container .inner {
   max-width: var(--layout-max-width);
   width: 100%;
   margin: 0 auto;
@@ -111,9 +111,13 @@ body {
 }
 
 header.app-header > .inner {
-  max-width: none;
-  margin: 0;
-  padding-inline: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  padding-inline: var(--layout-horizontal-pad);
   width: 100%;
   box-sizing: border-box;
 }
@@ -164,6 +168,20 @@ h2 {
 .app-header {
   background-color: var(--blomfelt-white);
   color: var(--blomfelt-green);
+  border: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0.75rem 0;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+}
+
+.app-header .app-logo img {
+  max-height: 64px;
+  width: auto;
+  display: block;
 }
 
 .app-title,
