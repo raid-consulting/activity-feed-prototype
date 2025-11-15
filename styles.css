@@ -14,6 +14,11 @@ main {
   padding-inline: var(--space-4);
 }
 
+body {
+  background-color: var(--blomfelt-yellow);
+  color: var(--text);
+}
+
 :is(header.app-header, .container .inner) {
   max-width: var(--layout-max-width);
   width: 100%;
@@ -71,6 +76,45 @@ h2 {
   font-size: 18px;
   font-weight: 500;
   line-height: 1.45;
+}
+
+.app-header {
+  background-color: var(--blomfelt-white);
+  color: var(--blomfelt-green);
+}
+
+.app-title,
+.brand-title,
+.primary-menu__placeholder {
+  color: var(--blomfelt-green);
+}
+
+.app-header .primary-menu .link {
+  color: var(--blomfelt-green);
+}
+
+.app-footer {
+  background-color: var(--blomfelt-green);
+  color: var(--blomfelt-white);
+}
+
+.app-footer a,
+.app-footer .footer-meta,
+.app-footer .footer-meta strong,
+.app-footer .footer-theme-label,
+.app-footer .footer-button,
+.app-footer .toggle,
+.app-footer .toggle .knob {
+  color: var(--blomfelt-white);
+}
+
+.app-footer a {
+  text-decoration: underline;
+}
+
+.app-footer svg {
+  fill: var(--blomfelt-white);
+  color: var(--blomfelt-white);
 }
 
 /* Interactive controls */
