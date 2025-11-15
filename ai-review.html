@@ -1435,6 +1435,10 @@
 
   const REFRESH_INTERVAL = window.AutoRefresh ? window.AutoRefresh.DEFAULT_INTERVAL : 15000;
   const RETRY_DELAYS_MS=[600,1500];
+  // Category order controls the vertical stack of AI review sections.
+  // When new sections are added, append them here so headers inherit the
+  // shared category color token while cards stay neutral automatically.
+  const REVIEW_CATEGORY_ORDER=['red','blue','green','grey'];
   let autoRefreshController = null;
   let activeLoadTimer=null;
   let activeRetryTimer=null;
@@ -1536,7 +1540,7 @@
       return false;
     }
 
-    const groups=['green','blue','red','grey'];
+    const groups=REVIEW_CATEGORY_ORDER;
     const markup=groups
       .map(groupKey=>{
         const groupItems=filtered.filter(item=>getCategory(item)===groupKey);
