@@ -35,11 +35,46 @@ body {
 
 header.app-header {
   background-color: var(--blomfelt-white);
+  color: var(--blomfelt-green);
   padding: 0.75rem 0;
   border-radius: 0;
   border: none;
   box-shadow: none;
   margin: 0;
+}
+
+.app-contact-bar {
+  background-color: var(--blomfelt-green);
+  color: var(--blomfelt-white);
+  font-size: 0.8rem;
+}
+
+.app-contact-bar-inner {
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  padding: 0.3rem 1.5rem;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
+  box-sizing: border-box;
+}
+
+.app-contact-item {
+  white-space: nowrap;
+}
+
+.app-contact-bar a {
+  color: var(--blomfelt-white);
+  text-decoration: none;
+}
+
+.app-contact-bar a:hover {
+  text-decoration: underline;
+}
+
+.app-contact-separator {
+  opacity: 0.7;
 }
 
 .page-hero {
@@ -175,6 +210,17 @@ h2 {
   line-height: 1.45;
 }
 
+header.app-header .inner {
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  box-sizing: border-box;
+}
+
 .app-header {
   background-color: var(--blomfelt-white);
   color: var(--blomfelt-green);
@@ -192,7 +238,32 @@ header.app-header .app-logo img {
 }
 
 .app-header .primary-menu .link {
+  text-decoration: none;
+}
+
+.app-nav-button {
+  border-radius: 999px;
+  padding: 0.35rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  background-color: var(--blomfelt-white);
   color: var(--blomfelt-green);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.app-nav-button--active {
+  background-color: var(--blomfelt-green);
+  color: var(--blomfelt-white);
+  border-color: var(--blomfelt-green);
+}
+
+.app-nav-button:hover,
+.app-nav-button--active:hover {
+  background-color: #23332d;
+  color: var(--blomfelt-white);
+  border-color: #23332d;
 }
 
 .app-footer {

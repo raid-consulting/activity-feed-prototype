@@ -544,8 +544,13 @@
         ].map(({href,label})=>{
           const isCurrent=currentPage===href.toLowerCase();
           const aria=isCurrent?' aria-current="page"':'';
-          const btnClass=isCurrent?'link btn btn-primary':'link btn btn-secondary';
-          return `<a class="${btnClass}" href="${href}"${aria}>${label}</a>`;
+          const classes=['link','btn','app-nav-button'];
+          if(isCurrent){
+            classes.push('btn-primary','app-nav-button--active');
+          } else {
+            classes.push('btn-secondary');
+          }
+          return `<a class="${classes.join(' ')}" href="${href}"${aria}>${label}</a>`;
         }).join('')
       : '';
     const navAttrs=navLinks
@@ -554,6 +559,17 @@
     const navBody=navLinks||'<span class="primary-menu__placeholder">Menu unavailable</span>';
     return `
       <div class="global-shell" data-shell>
+        <div class="app-contact-bar">
+          <div class="inner app-contact-bar-inner">
+            <span class="app-contact-item app-contact-email">
+              E: <a href="mailto:info@blomfelt.dk">info@blomfelt.dk</a>
+            </span>
+            <span class="app-contact-separator">|</span>
+            <span class="app-contact-item app-contact-phone">
+              T: <a href="tel:+4570209120">70 20 91 20</a>
+            </span>
+          </div>
+        </div>
         <header class="app-header" data-shell-header data-test="app-header">
           <div class="inner">
             <a class="app-logo" data-shell-logo href="index.html" aria-label="Blomfelt">
