@@ -123,3 +123,159 @@ button, .button, .btn, input[type="submit"], input[type="button"] {
   font-weight: 500;
   line-height: 1.45;
 }
+
+/* Shared Blomfelt card shell */
+.card,
+.panel,
+.summary-card,
+.review-items .review-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  min-height: 0;
+  overflow: hidden;
+
+  background-color: var(--blomfelt-white);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+
+  padding: calc(var(--space-4) + var(--space-1) / 2);
+  text-align: left;
+  color: var(--blomfelt-black);
+}
+
+.card > :first-child,
+.panel > :first-child,
+.summary-card > :first-child,
+.review-items .review-item > :first-child {
+  margin-top: 0;
+}
+
+.card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  width: 100%;
+  padding: 0;
+}
+
+.card-content > :first-child {
+  margin-top: 0;
+}
+
+.card-content > * {
+  width: 100%;
+}
+
+.card-header {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.card .title-text,
+.review-items .review-item .title-text {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--blomfelt-black);
+}
+
+.card .description,
+.review-items .review-item .description {
+  margin: 0;
+  font-size: 0.95rem;
+  color: rgba(0, 0, 0, 0.8);
+}
+
+.card .title-text + .description,
+.review-items .review-item .title-text + .description {
+  margin-top: var(--space-2);
+}
+
+.card .meta,
+.review-items .review-item .meta {
+  margin-top: calc(var(--space-2) + var(--space-1) / 2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  font-size: 0.85rem;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.card .timestamp,
+.review-items .review-item .timestamp {
+  font-size: 0.85rem;
+  color: rgba(0, 0, 0, 0.65);
+  margin-left: auto;
+}
+
+.card .chev,
+.review-items .review-item .chev {
+  position: absolute;
+  top: 50%;
+  right: calc(var(--space-4) + var(--space-1) / 2);
+  transform: translateY(-50%);
+  opacity: 0.4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-stripe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  border-radius: 12px 12px 0 0;
+  background: var(--grey);
+  pointer-events: none;
+}
+
+.card-stripe-green { background: var(--green); }
+.card-stripe-red { background: var(--red); }
+.card-stripe-blue { background: var(--blue); }
+.card-stripe-grey { background: var(--grey); }
+
+button.card,
+a.card,
+.review-items button.review-item {
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, transform 0.1s ease,
+    border-color 0.15s ease;
+}
+
+button.card:focus-visible,
+a.card:focus-visible,
+.review-items button.review-item:focus-visible {
+  outline: 2px solid var(--blomfelt-bright-blue);
+  outline-offset: 2px;
+}
+
+button.card:hover,
+a.card:hover,
+.review-items button.review-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+}
+
+button.card:hover .chev,
+a.card:hover .chev,
+.review-items button.review-item:hover .chev {
+  opacity: 0.6;
+}
+
+button.card:active,
+a.card:active,
+.review-items button.review-item:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
