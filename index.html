@@ -195,6 +195,7 @@
 
 <script src="footer-overscroll.js"></script>
 <script src="refresh-utils.js"></script>
+<script src="list-filters.js"></script>
 <script src="ai-classifier.js"></script>
 <script src="ai-category-constants.js"></script>
 <script>
@@ -600,6 +601,32 @@
           <h1 class="section-title">Activity Feed</h1>
           <p class="section-subtitle">Monitor inbox triage and recent automation updates.</p>
         </header>
+        <div class="controls" id="activityFiltersRow" aria-label="Activity filters">
+          <div class="filters" id="activityFilters" role="toolbar" aria-label="Category filters">
+            <button class="pill filter-chip" type="button" data-filter="all" aria-pressed="true">
+              All <span class="pill-count" data-count="all">0</span>
+            </button>
+            <button class="pill filter-chip pill-green" type="button" data-filter="green" aria-pressed="false">
+              Green <span class="pill-count" data-count="green">0</span>
+            </button>
+            <button class="pill filter-chip pill-blue" type="button" data-filter="blue" aria-pressed="false">
+              Blue <span class="pill-count" data-count="blue">0</span>
+            </button>
+            <button class="pill filter-chip pill-red" type="button" data-filter="red" aria-pressed="false">
+              Red <span class="pill-count" data-count="red">0</span>
+            </button>
+            <button class="pill filter-chip pill-grey" type="button" data-filter="grey" aria-pressed="false">
+              Grey <span class="pill-count" data-count="grey">0</span>
+            </button>
+          </div>
+          <label class="search">
+            <span class="sr-only">Search subjects or senders</span>
+            <input type="search" id="activitySearch" placeholder="Search subjects or senders" autocomplete="off" />
+          </label>
+        </div>
+        <div class="inline-empty" id="activityNoResults" hidden role="status" aria-live="polite">
+          No activity items match your filters.
+        </div>
         <div class="feed-content activity-feed" id="feedContent">
           <div class="stack feed-groups" id="cardList"></div>
         </div>
@@ -633,8 +660,50 @@
     const detailBody = document.getElementById('detailBody');
     const detailCrumb = document.getElementById('detailCrumb');
     const cardList = document.getElementById('cardList');
+    const filtersRow = document.getElementById('activityFiltersRow');
+    const filtersHost = document.getElementById('activityFilters');
+    const activitySearch = document.getElementById('activitySearch');
+    const noResultsNotice = document.getElementById('activityNoResults');
+    const filterButtons = filtersHost ? Array.from(filtersHost.querySelectorAll('[data-filter]')) : [];
 
-    const state = { emails:[], detailId:null };
+    const state = { emails:[], detailId:null, filter:'all', search:'' };
+
+    function getActivityCategory(item){
+      return AICategory.normalizeCategory(item && item.ai ? item.ai.category : item.aiCategory);
+    }
+
+    function getActivitySearchText(item){
+      return [
+        item.subject,
+        item.from,
+        item.body,
+        item.status,
+        item.aiSynopsis
+      ].map(value => String(value || '').toLowerCase()).join(' ');
+    }
+
+    let filterController = null;
+    if(window.ListFilters && filterButtons.length){
+      filterController = window.ListFilters.createListFilterController({
+        filterButtons,
+        searchInput: activitySearch,
+        countRoot: filtersRow || document,
+        getCategory: getActivityCategory,
+        getSearchText: getActivitySearchText
+      });
+      if(filterController){
+        const initial = filterController.getState();
+        if(initial){
+          state.filter = initial.filter || state.filter;
+          state.search = initial.search || state.search;
+        }
+        filterController.onChange(({filter, search}) => {
+          state.filter = filter;
+          state.search = search;
+          renderFeedItems();
+        });
+      }
+    }
 
     function buildGroups(emails){
       return groups.map(group => {
@@ -642,7 +711,7 @@
         if(!items.length) return '';
         const cards = items.map(e => {
           const info = statusInfo[e.status] || statusInfo.info;
-          const categoryKey = AICategory.normalizeCategory(e.ai && e.ai.category || e.aiCategory);
+          const categoryKey = getActivityCategory(e);
           const categoryAttr = escapeHtml(categoryKey);
           const timestamp = formatTime(e.received);
           const timestampIso = new Date(e.received).toISOString();
@@ -724,12 +793,35 @@
       });
     }
 
+    function renderFeedItems(){
+      const hasAny = state.emails.length > 0;
+      const filtered = filterController
+        ? filterController.getFilteredItems(state.emails)
+        : state.emails.slice();
+      const hasFiltered = filtered.length > 0;
+      if(!hasAny){
+        cardList.innerHTML = '<p class="meta">No notifications available.</p>';
+        if(noResultsNotice){ noResultsNotice.hidden = true; }
+        return;
+      }
+      if(!hasFiltered){
+        cardList.innerHTML = '';
+        if(noResultsNotice){ noResultsNotice.hidden = false; }
+        return;
+      }
+      if(noResultsNotice){ noResultsNotice.hidden = true; }
+      const markup = buildGroups(filtered);
+      cardList.innerHTML = markup || '<p class="meta">No notifications available.</p>';
+      attachCardHandlers();
+    }
+
     function updateFeed({skipScroll=false}={}){
       const emails = getEmails();
       state.emails = emails.slice();
-      const markup = buildGroups(emails);
-      cardList.innerHTML = markup || '<p class="meta">No notifications available.</p>';
-      attachCardHandlers();
+      if(filterController){
+        filterController.setItems(state.emails);
+      }
+      renderFeedItems();
       if(state.detailId){
         const current = state.emails.find(e => e.id === state.detailId);
         if(current){
