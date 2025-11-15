@@ -616,8 +616,8 @@
           <h1 class="section-title">Activity Feed</h1>
           <p class="section-subtitle">Monitor inbox triage and recent automation updates.</p>
         </header>
-        <div class="feed-content" id="feedContent">
-          <div class="stack" id="cardList"></div>
+        <div class="feed-content activity-feed" id="feedContent">
+          <div class="stack activity-groups" id="cardList"></div>
         </div>
         <div class="detail-view" id="detailView" aria-hidden="true">
           <div class="detail-head">
@@ -680,10 +680,22 @@
             <span class="chev">${cardChevron()}</span>
           </button>`;
         }).join('');
-        return `<div class="group">
-          <div class="group-title">${group.title}</div>
-          <div class="group-cards">${cards}</div>
-        </div>`;
+        const countLabel = `${items.length} ${items.length === 1 ? 'item' : 'items'}`;
+        const description = group.description ? `<p class="activity-group-description">${group.description}</p>` : '';
+        return `<section class="activity-group" data-activity-group="${group.title}">
+          <header class="activity-group-header">
+            <div class="activity-group-header-main">
+              <h2 class="activity-group-title">${group.title}</h2>
+              ${description}
+            </div>
+            <div class="activity-group-meta">
+              <span class="activity-group-count">${countLabel}</span>
+            </div>
+          </header>
+          <div class="activity-group-items">
+            <div class="activity-items">${cards}</div>
+          </div>
+        </section>`;
       }).join('');
     }
 
