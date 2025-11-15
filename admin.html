@@ -114,10 +114,9 @@
   .btn,
   .btn-sm,
   .link,
-  .footer-button{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:100%;min-height:0;max-height:var(--btn-height-max);gap:calc(var(--space-1) + var(--space-1) / 2)}
-  .link{color:var(--ink);text-decoration:none;padding:0 var(--space-4);border-radius:10px;border:2px solid var(--line);background:var(--btn);flex:0 0 auto;height:var(--btn-height-md)}
-  .link:hover{background:var(--btn-hover)}
-  .link[aria-current="page"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .footer-button{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:100%;min-height:0;gap:calc(var(--space-1) + var(--space-1) / 2)}
+  .link{color:inherit;text-decoration:none;flex:0 0 auto}
+  .link[aria-current="page"]{font-weight:600}
   .toggle{width:54px;height:30px;border-radius:100px;border:2px solid var(--line);background:var(--btn);position:relative;cursor:pointer}
   .toggle:hover{background:var(--btn-hover)}
   .toggle:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
@@ -128,9 +127,7 @@
   .footer-meta{display:flex;flex-direction:column;gap:calc(var(--space-1) / 2);color:var(--muted)}
   .footer-meta strong{color:var(--ink)}
   .footer-actions{display:flex;gap:var(--space-3);align-items:center;flex-wrap:wrap}
-  .footer-button{appearance:none;border:2px solid var(--line);background:var(--btn);color:var(--ink);padding:0 var(--space-4);border-radius:10px;cursor:pointer;height:var(--btn-height-md)}
-  .footer-button:hover{background:var(--btn-hover)}
-  .footer-button[disabled]{opacity:.6;cursor:not-allowed}
+  .footer-button{flex:0 0 auto}
   .footer-theme{display:flex;align-items:center;gap:calc(var(--space-2) + var(--space-1) / 2)}
   .footer-theme-label{color:var(--muted)}
 
@@ -146,9 +143,7 @@
   th{color:var(--ink)}
   tr:hover{background:var(--card-hover)}
   .actions{display:flex;gap:calc(var(--space-2) + var(--space-1) / 2);flex-wrap:wrap}
-  .btn{appearance:none;border:2px solid var(--line);background:var(--btn);color:var(--text);padding:0 var(--space-4);border-radius:10px;cursor:pointer;height:var(--btn-height-lg)}
-  .btn:hover{background:var(--btn-hover)}
-  .btn-sm{height:var(--btn-height-sm);padding:0 calc(var(--space-3) + var(--space-1) / 2)}
+  .btn-sm{min-height:0}
   .detail{background:var(--detail);border:2px solid var(--line);border-radius:12px;padding:var(--panel-pad)}
   #listPanel.detail{align-self:start}
   .ai-section{display:grid;gap:calc(var(--space-2) + var(--space-1) / 2);margin-top:calc(var(--space-3) + var(--space-1) / 2)}
@@ -222,8 +217,8 @@
             <label for="overrideNote">Note (optional)</label>
             <textarea id="overrideNote" name="overrideNote" placeholder="Add context for this override"></textarea>
             <div class="form-actions">
-              <button class="btn" type="submit" id="overrideSubmit">Save override</button>
-              <button class="btn" type="button" id="detailReassess">Reassess AI metadata</button>
+              <button class="btn btn-primary" type="submit" id="overrideSubmit">Save override</button>
+              <button class="btn btn-secondary" type="button" id="detailReassess">Reassess AI metadata</button>
             </div>
             <p class="meta override-status" id="overrideStatus" role="status" hidden></p>
           </form>
@@ -257,7 +252,8 @@
         ].map(({href,label}) => {
           const isCurrent = currentPage === href.toLowerCase();
           const aria = isCurrent ? ' aria-current="page"' : '';
-          return `<a class="link" href="${href}"${aria}>${label}</a>`;
+          const btnClass = isCurrent ? 'link btn btn-primary' : 'link btn btn-secondary';
+          return `<a class="${btnClass}" href="${href}"${aria}>${label}</a>`;
         }).join('')
       : '';
     const navAttrs = navLinks
@@ -288,7 +284,7 @@
         <strong>${displayName}</strong>
       </div>
       <div class="footer-actions">
-        <button class="footer-button" type="button" id="logoutBtn"${logoutAttrs}>Logout</button>
+        <button class="footer-button btn btn-secondary" type="button" id="logoutBtn"${logoutAttrs}>Logout</button>
         <div class="footer-theme">
           <span class="footer-theme-label" id="themeLabel">${themeLabel}</span>
           <button class="toggle" type="button" id="themeToggle" aria-pressed="false">
@@ -732,7 +728,7 @@
         <td>${e.subject}</td>
         <td>${e.status}</td>
         <td>${fmt(e.received)}</td>
-        <td><button class="btn" data-id="${e.id}">View</button></td>
+        <td><button class="btn btn-secondary" data-id="${e.id}">View</button></td>
       </tr>`).join('');
     tbody.querySelectorAll('button[data-id]').forEach(b => b.onclick = () => viewEmail(b.getAttribute('data-id')));
   }

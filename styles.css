@@ -118,10 +118,159 @@ h2 {
 }
 
 /* Interactive controls */
-button, .button, .btn, input[type="submit"], input[type="button"] {
-  font-size: 14px;
+button,
+.button,
+.btn,
+input[type="submit"],
+input[type="button"] {
+  font-family: inherit;
+  font-size: 0.9rem;
   font-weight: 500;
-  line-height: 1.45;
+  line-height: 1.2;
+  border-radius: 999px;
+  padding: 0.45rem 1rem;
+  border: 1px solid var(--blomfelt-green, #2c403a);
+  background-color: var(--blomfelt-green, #2c403a);
+  color: var(--blomfelt-white, #ffffff);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-primary,
+button.btn-primary,
+input[type="button"].btn-primary,
+input[type="submit"].btn-primary {
+  background-color: var(--blomfelt-green, #2c403a);
+  color: var(--blomfelt-white, #ffffff);
+  border-color: var(--blomfelt-green, #2c403a);
+}
+
+.btn-secondary,
+button.btn-secondary,
+input[type="button"].btn-secondary,
+input[type="submit"].btn-secondary {
+  background-color: var(--blomfelt-white, #ffffff);
+  color: var(--blomfelt-green, #2c403a);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+.btn-sm,
+button.btn-sm,
+input[type="button"].btn-sm,
+input[type="submit"].btn-sm {
+  padding-block: 0.3rem;
+  padding-inline: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.btn-icon,
+button.btn-icon {
+  padding: 0.35rem;
+  width: 2rem;
+  height: 2rem;
+}
+
+button:hover,
+.btn:hover,
+input[type="button"]:hover,
+input[type="submit"]:hover {
+  background-color: #24332f;
+  border-color: #24332f;
+}
+
+button.btn-secondary:hover,
+.btn.btn-secondary:hover,
+.btn-secondary:hover,
+input[type="button"].btn-secondary:hover,
+input[type="submit"].btn-secondary:hover {
+  background-color: var(--blomfelt-yellow, #fdf6e1);
+  border-color: rgba(0, 0, 0, 0.16);
+}
+
+button:focus-visible,
+.btn:focus-visible,
+input[type="button"]:focus-visible,
+input[type="submit"]:focus-visible {
+  outline: 2px solid var(--blomfelt-bright-blue, #afd0e7);
+  outline-offset: 2px;
+}
+
+button:disabled,
+.btn:disabled,
+input[type="button"]:disabled,
+input[type="submit"]:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+input[type="text"],
+input[type="search"] {
+  font-family: inherit;
+  font-size: 0.9rem;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  padding: 0.45rem 0.9rem;
+  background-color: var(--blomfelt-white, #ffffff);
+  color: var(--blomfelt-black, #000000);
+  line-height: 1.4;
+}
+
+input[type="text"]:focus-visible,
+input[type="search"]:focus-visible {
+  outline: 2px solid var(--blomfelt-bright-blue, #afd0e7);
+  outline-offset: 2px;
+  border-color: transparent;
+}
+
+.filter-chip,
+.pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background-color: var(--blomfelt-white, #ffffff);
+  color: var(--blomfelt-black, #000000);
+  font-size: 0.85rem;
+  font-weight: 500;
+  line-height: 1.2;
+  cursor: pointer;
+  gap: 0.35rem;
+}
+
+.filter-chip--active,
+.pill[aria-pressed="true"] {
+  background-color: var(--blomfelt-green, #2c403a);
+  color: var(--blomfelt-white, #ffffff);
+  border-color: var(--blomfelt-green, #2c403a);
+}
+
+.pill-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.08);
+  color: inherit;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.pill[aria-pressed="true"] .pill-count,
+.filter-chip--active .pill-count {
+  background: rgba(255, 255, 255, 0.24);
+  color: var(--blomfelt-white, #ffffff);
 }
 
 /* Shared Blomfelt card pattern */
