@@ -25,7 +25,6 @@
     --panel-pad:var(--space-4);
     --panel-pad-mobile:var(--space-3);
     --footer-safe-area:env(safe-area-inset-bottom);
-    --card-stripe:calc(var(--space-1) + var(--space-1) / 2);
     --btn-height-sm:34px;
     --btn-height-md:38px;
     --btn-height-lg:42px;
@@ -191,7 +190,7 @@
   const AICategory = window.AICategory || {
     AI_CATEGORY_COPY: {},
     normalizeCategory: () => 'grey',
-    getCategoryPresentation: () => ({ key: 'grey', title: 'Unassessed', description: 'Awaiting AI review.', stripeClass: 'card-stripe-grey', ariaLabel: 'Unassessed' })
+    getCategoryPresentation: () => ({ key: 'grey', title: 'Unassessed', description: 'Awaiting AI review.', accentClass: 'category-grey', ariaLabel: 'Unassessed' })
   };
 
   function seedDB(){
@@ -561,10 +560,10 @@
       'info': {badge:'FYI', badgeClass:''}
     };
     const groups = [
-      {title:'Urgent', statuses:['urgent']},
-      {title:'Needs your attention', statuses:['manual','needs_context']},
-      {title:'Follow ups', statuses:['draft']},
-      {title:'Recent updates', statuses:['info']}
+      {title:'Urgent', statuses:['urgent'], category:'red'},
+      {title:'Needs your attention', statuses:['manual','needs_context'], category:'blue'},
+      {title:'Follow ups', statuses:['draft'], category:'green'},
+      {title:'Recent updates', statuses:['info'], category:'grey'}
     ];
     const truncate = (text)=> text.length>160 ? text.slice(0,157)+'…' : text;
     const formatTime = (ts)=> new Date(ts).toLocaleString();
@@ -583,7 +582,7 @@
         </div>
         <div class="detail-view" id="detailView" aria-hidden="true">
           <div class="detail-head">
-            <div class="crumbs">
+            <div class="crumbs sandcrumbs">
               <button type="button" id="detailBack">Activity feed</button>
               <span>/</span>
               <strong id="detailCrumb">Details</strong>
@@ -621,12 +620,12 @@
         const cards = items.map(e => {
           const info = statusInfo[e.status] || statusInfo.info;
           const categoryKey = AICategory.normalizeCategory(e.ai && e.ai.category || e.aiCategory);
-          const stripe = AICategory.getCategoryPresentation(categoryKey);
+          const presentation = AICategory.getCategoryPresentation(categoryKey);
+          const chipClass = presentation.accentClass || `category-${categoryKey}`;
           const urgentClass = e.status==='urgent' ? ' is-urgent' : '';
           const timestamp = formatTime(e.received);
           const timestampIso = new Date(e.received).toISOString();
           return `<button class="card${urgentClass}" data-email="${e.id}">
-            <span class="card-stripe ${stripe.stripeClass}" aria-label="${escapeHtml(stripe.title)}"></span>
             <div class="card-inner">
               <div class="card-header">
                 <div class="card-header-left">
@@ -638,14 +637,18 @@
               <div class="card-body">
                 <p class="card-description description">${truncate(e.body)}</p>
               </div>
+              <div class="card-meta meta">
+                <span class="ai-category-chip ${chipClass}">${escapeHtml(presentation.title)}</span>
+              </div>
             </div>
             <span class="chev">${cardChevron()}</span>
           </button>`;
         }).join('');
         const countLabel = `${items.length} ${items.length === 1 ? 'item' : 'items'}`;
         const description = group.description ? `<p class="activity-group-description">${group.description}</p>` : '';
+        const headerAccentClass = group.category ? `category-${group.category}` : 'category-grey';
         return `<section class="activity-group" data-activity-group="${group.title}">
-          <header class="activity-group-header">
+          <header class="activity-group-header ${headerAccentClass}">
             <div class="activity-group-header-main">
               <h2 class="activity-group-title">${group.title}</h2>
               ${description}

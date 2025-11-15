@@ -19,7 +19,7 @@ function test(name, fn){
     assert.ok(copy, 'copy exists');
     assert.strictEqual(presentation.title, copy.title);
     assert.strictEqual(presentation.description, copy.desc);
-    assert.strictEqual(presentation.stripeClass, `card-stripe-${key}`);
+    assert.strictEqual(presentation.accentClass, `category-${key}`);
     assert.strictEqual(presentation.ariaLabel, copy.title);
   });
 });
@@ -27,6 +27,6 @@ function test(name, fn){
 test('unknown categories fall back to grey copy', () => {
   const presentation = categories.getCategoryPresentation('purple');
   assert.strictEqual(presentation.key, 'grey');
-  assert.strictEqual(presentation.stripeClass, 'card-stripe-grey');
+  assert.strictEqual(presentation.accentClass, 'category-grey');
   assert.strictEqual(presentation.title, categories.AI_CATEGORY_COPY.grey.title);
 });
