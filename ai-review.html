@@ -1515,15 +1515,21 @@
           const itemCategory=getCategory(item);
           const stripe=AICategory.getCategoryPresentation(itemCategory);
           const stripeClass=stripe.stripeClass || `card-stripe-${itemCategory}`;
+          const timestamp=formatTime(item.received);
+          const timestampIso=new Date(item.received).toISOString();
           return `<button class="card" data-id="${item.id}">
             <span class="card-stripe ${stripeClass}" aria-label="${escapeHtml(stripe.title)}"></span>
-            <div class="card-content">
+            <div class="card-inner">
               <div class="card-header">
-                <span class="timestamp">${formatTime(item.received)}</span>
+                <div class="card-header-left">
+                  <div class="card-title title-text">${escapeHtml(item.subject)}</div>
+                </div>
+                <time class="card-timestamp timestamp" datetime="${timestampIso}">${timestamp}</time>
               </div>
-              <div class="title-text">${escapeHtml(item.subject)}</div>
-              <p class="description">${escapeHtml(synopsis)}</p>
-              <div class="meta">${metaParts.join(' • ')}</div>
+              <div class="card-body">
+                <p class="description">${escapeHtml(synopsis)}</p>
+              </div>
+              <div class="card-meta meta">${metaParts.join(' • ')}</div>
             </div>
             <span class="chev">${'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>'}</span>
           </button>`;
