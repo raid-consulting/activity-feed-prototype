@@ -182,49 +182,6 @@
     .review-items{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
   }
 
-  .group-cards .card,
-  .review-items .card{
-    position:relative;
-    display:flex;
-    flex-direction:column;
-    align-items:flex-start;
-    justify-content:flex-start;
-    background-color:var(--blomfelt-white);
-    border:1px solid rgba(0,0,0,.08);
-    border-radius:12px;
-    padding:calc(var(--space-4) + var(--space-1) / 2);
-    text-align:left;
-    color:var(--blomfelt-black);
-    cursor:pointer;
-    transition:box-shadow .15s ease,border-color .15s ease,transform .1s ease;
-    min-height:0;
-    overflow:hidden;
-  }
-  .group-cards .card:focus-visible,
-  .review-items .card:focus-visible{outline:2px solid var(--blomfelt-bright-blue);outline-offset:2px}
-  .group-cards .card:hover,
-  .review-items .card:hover{box-shadow:0 4px 12px rgba(0,0,0,.08);border-color:rgba(0,0,0,.2);transform:translateY(-1px)}
-  .group-cards .card:active,
-  .review-items .card:active{transform:translateY(0);box-shadow:0 2px 6px rgba(0,0,0,.08)}
-  .group-cards .card-content,
-  .review-items .card-content{display:flex;flex-direction:column;align-items:flex-start;gap:0;width:100%;padding:0}
-  .group-cards .card-content > :first-child,
-  .review-items .card-content > :first-child{margin-top:0}
-  .group-cards .card-content > *{width:100%}
-  .group-cards .card-header{display:flex;width:100%;align-items:center;justify-content:space-between;margin-bottom:var(--space-2);gap:var(--space-2)}
-  .timestamp{font-size:.85rem;color:rgba(0,0,0,.65);margin-left:auto}
-  .title-text{margin:0;font-size:1rem;font-weight:600;color:var(--blomfelt-black)}
-  .card-content .title-text + .description{margin-top:var(--space-2)}
-  .description{margin:0;font-size:.95rem;color:rgba(0,0,0,.8)}
-  .meta{margin-top:calc(var(--space-2) + var(--space-1) / 2);display:flex;flex-wrap:wrap;gap:var(--space-2);font-size:.85rem;color:rgba(0,0,0,.65)}
-  .chev{position:absolute;top:50%;right:calc(var(--space-4) + var(--space-1) / 2);transform:translateY(-50%);opacity:.4;display:flex;align-items:center;justify-content:center}
-  .group-cards .card:hover .chev,
-  .review-items .card:hover .chev{opacity:.6}
-  .card-stripe{position:absolute;top:0;left:0;right:0;height:4px;border-radius:12px 12px 0 0;background:var(--grey);pointer-events:none}
-  .card-stripe-green{background:var(--green)}
-  .card-stripe-red{background:var(--red)}
-  .card-stripe-blue{background:var(--blue)}
-  .card-stripe-grey{background:var(--grey)}
   .badge{display:inline-flex;align-items:center;gap:calc(var(--space-1) + var(--space-1) / 2);padding:var(--space-1) calc(var(--space-2) + var(--space-1) / 2);border-radius:999px;background:rgba(255,255,255,.08);color:var(--ink);border:1px solid var(--line)}
   
 
