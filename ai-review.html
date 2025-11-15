@@ -379,6 +379,9 @@
   const DB_KEY='faux-emails', AUTH_KEY='faux-auth';
   const LOAD_TIMEOUT_MS=10000;
   const DEFAULT_ERROR_MESSAGE='We hit a snag loading review signals.';
+  // Keep the visible sections in this fixed order so red/blue/green/grey always
+  // map to their respective header accents even as the dataset changes.
+  const CATEGORY_RENDER_ORDER=['red','blue','green','grey'];
 
   const telemetry=(window.telemetry && typeof window.telemetry.log==='function')
     ? window.telemetry
@@ -1536,8 +1539,7 @@
       return false;
     }
 
-    const groups=['green','blue','red','grey'];
-    const markup=groups
+    const markup=CATEGORY_RENDER_ORDER
       .map(groupKey=>{
         const groupItems=filtered.filter(item=>getCategory(item)===groupKey);
         if(!groupItems.length) return '';

@@ -141,8 +141,11 @@
   .group{display:grid;gap:var(--space-3)}
   .group-title{color:var(--ink)}
   .group-cards{display:grid;gap:var(--space-3)}
-  .badge-urgent{background:rgba(255,94,94,.18);color:var(--ink);border-color:rgba(255,94,94,.45)}
-  .card.is-urgent{box-shadow:0 0 0 2px rgba(255,122,102,.55);border-color:rgba(255,122,102,.6)}
+  .badge-urgent{
+    background:rgba(255,168,153,.18);
+    color:var(--blomfelt-green,#2c403a);
+    border-color:rgba(255,168,153,.5);
+  }
 
   /* Details: only one mode visible at a time */
   .detail{background:var(--detail);border:2px solid var(--line);border-radius:12px;padding:var(--panel-pad);min-height:160px}
@@ -576,11 +579,13 @@
       'draft': {badge:'Draft ready', badgeClass:''},
       'info': {badge:'FYI', badgeClass:''}
     };
-    const groups = [
-      {title:'Urgent', statuses:['urgent']},
-      {title:'Needs your attention', statuses:['manual','needs_context']},
-      {title:'Follow ups', statuses:['draft']},
-      {title:'Recent updates', statuses:['info']}
+    const activityGroups = [
+      // Assign one of the shared AI categories (red/blue/green/grey) per section
+      // so the common header component automatically picks the right accent.
+      {title:'Urgent', category:'red', statuses:['urgent']},
+      {title:'Needs your attention', category:'blue', statuses:['manual','needs_context']},
+      {title:'Follow ups', category:'green', statuses:['draft']},
+      {title:'Recent updates', category:'grey', statuses:['info']}
     ];
     const truncate = (text)=> text.length>160 ? text.slice(0,157)+'…' : text;
     const formatTime = (ts)=> new Date(ts).toLocaleString();
@@ -631,7 +636,7 @@
     const state = { emails:[], detailId:null };
 
     function buildGroups(emails){
-      return groups.map(group => {
+      return activityGroups.map(group => {
         const items = emails.filter(e => group.statuses.includes(e.status)).sort((a,b)=>b.received-a.received);
         if(!items.length) return '';
         const cards = items.map(e => {
@@ -639,10 +644,9 @@
           const categoryKey = AICategory.normalizeCategory(e.ai && e.ai.category || e.aiCategory);
           const categoryPresentation = AICategory.getCategoryPresentation(categoryKey);
           const categoryAttr = escapeHtml(categoryPresentation.key);
-          const urgentClass = e.status==='urgent' ? ' is-urgent' : '';
           const timestamp = formatTime(e.received);
           const timestampIso = new Date(e.received).toISOString();
-          return `<button class="card${urgentClass}" data-email="${e.id}" data-ai-category="${categoryAttr}">
+          return `<button class="card" data-email="${e.id}" data-ai-category="${categoryAttr}">
             <div class="card-inner">
               <div class="card-header">
                 <div class="card-header-left">
@@ -660,7 +664,10 @@
         }).join('');
         const countLabel = `${items.length} ${items.length === 1 ? 'item' : 'items'}`;
         const description = group.description ? `<p class="activity-group-description">${group.description}</p>` : '';
-        return `<section class="activity-group" data-activity-group="${group.title}">
+        const headerCategory = AICategory.normalizeCategory(group.category);
+        const headerPresentation = AICategory.getCategoryPresentation(headerCategory);
+        const headerTheme = headerPresentation.themeClass ? ` ${headerPresentation.themeClass}` : '';
+        return `<section class="activity-group${headerTheme}" data-activity-group="${group.title}">
           <header class="activity-group-header">
             <div class="activity-group-header-main">
               <h2 class="activity-group-title">${group.title}</h2>
