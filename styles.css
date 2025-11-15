@@ -27,6 +27,15 @@ body {
   box-sizing: border-box;
 }
 
+header.app-header {
+  background-color: var(--blomfelt-white);
+  padding: 0.75rem 0;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+  margin: 0;
+}
+
 .page-hero {
   margin-bottom: 1.5rem;
 }
@@ -111,10 +120,10 @@ body {
 }
 
 header.app-header > .inner {
-  max-width: none;
-  margin: 0;
-  padding-inline: 0;
+  max-width: var(--layout-max-width);
   width: 100%;
+  margin: 0 auto;
+  padding-inline: var(--layout-horizontal-pad);
   box-sizing: border-box;
 }
 
@@ -164,6 +173,11 @@ h2 {
 .app-header {
   background-color: var(--blomfelt-white);
   color: var(--blomfelt-green);
+}
+
+header.app-header .app-logo img {
+  max-height: 64px;
+  width: auto;
 }
 
 .app-title,
