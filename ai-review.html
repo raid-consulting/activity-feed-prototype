@@ -174,6 +174,125 @@
 
   .group-cards .card,
   .review-items .card{min-height:0}
+
+  .ai-review-groups{
+    display:flex;
+    flex-direction:column;
+    gap:calc(var(--space-4) + var(--space-2));
+  }
+
+  .ai-review-group{
+    background-color:var(--blomfelt-white,#fff);
+    border:1px solid rgba(0,0,0,0.08);
+    border-radius:18px;
+    box-shadow:0 12px 30px rgba(0,0,0,0.08);
+    overflow:hidden;
+  }
+
+  .ai-review-group-header{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:var(--space-3);
+    padding:calc(var(--space-4) + var(--space-1) / 2);
+    border-bottom:1px solid rgba(0,0,0,0.08);
+  }
+
+  .ai-review-group-header-main{
+    display:flex;
+    flex-direction:column;
+    gap:calc(var(--space-1) + var(--space-1) / 2);
+    min-width:0;
+  }
+
+  .ai-review-group-title{
+    margin:0;
+    font-size:1rem;
+    font-weight:600;
+    color:var(--blomfelt-green,#2c403a);
+  }
+
+  .ai-review-group-description{
+    margin:0;
+    font-size:0.95rem;
+    color:rgba(0,0,0,0.7);
+  }
+
+  .ai-review-group-meta{
+    font-size:0.9rem;
+    color:rgba(0,0,0,0.6);
+    white-space:nowrap;
+  }
+
+  .ai-review-group-count{
+    font-weight:600;
+    color:var(--blomfelt-green,#2c403a);
+  }
+
+  .ai-review-group-items{
+    display:flex;
+    flex-direction:column;
+  }
+
+  .ai-review-group .review-items{
+    display:flex;
+    flex-direction:column;
+    gap:0;
+  }
+
+  .ai-review-group .review-item{
+    border:0;
+    border-radius:0;
+    box-shadow:none;
+    background-color:transparent;
+    padding:calc(var(--space-4) + var(--space-1) / 2);
+    margin:0;
+    align-items:flex-start;
+    text-align:left;
+  }
+
+  .ai-review-group .review-item + .review-item{
+    border-top:1px solid rgba(0,0,0,0.06);
+  }
+
+  .ai-review-group .review-item:first-child{
+    border-top-left-radius:18px;
+    border-top-right-radius:18px;
+  }
+
+  .ai-review-group .review-item:last-child{
+    border-bottom-left-radius:18px;
+    border-bottom-right-radius:18px;
+  }
+
+  .ai-review-group .review-item:hover{
+    transform:none;
+    box-shadow:none;
+    background-color:rgba(0,0,0,0.02);
+  }
+
+  .ai-review-group .review-item:active{
+    transform:none;
+    box-shadow:none;
+  }
+
+  .ai-review-group .review-item:focus-visible{
+    outline-offset:2px;
+  }
+
+  .ai-review-group .review-item .card-stripe{
+    border-radius:0;
+  }
+
+  .ai-review-group .review-item:first-child .card-stripe{
+    border-top-left-radius:18px;
+    border-top-right-radius:18px;
+  }
+
+  .ai-review-group .review-item:last-child .card-stripe{
+    border-bottom-left-radius:18px;
+    border-bottom-right-radius:18px;
+  }
   
 
   .empty{padding:calc(var(--space-4) * 2);border:2px dashed var(--line);border-radius:12px;text-align:center;color:var(--muted);background:var(--card);display:grid;gap:var(--space-3);justify-items:center}
@@ -221,7 +340,7 @@
 </style>
 <link rel="stylesheet" href="styles.css" />
 </head>
-<body>
+<body class="ai-review-page">
   <main class="frame">
     <div id="globalShell"></div>
     <div class="container">
@@ -254,7 +373,7 @@
           </div>
         </div>
         <div class="loading" id="loadingState" role="status">Loading review signals…</div>
-        <div class="stack" id="groupContainer" hidden></div>
+        <div class="stack ai-review-groups" id="groupContainer" hidden></div>
         <div class="inline-empty" id="noResultsNotice" hidden role="status" aria-live="polite">No review items match your filters.</div>
         <div class="empty" id="emptyState" data-empty-banner="true" hidden role="region" aria-label="AI review empty state" tabindex="-1">
           <p>No items to review yet.</p>
@@ -1505,7 +1624,7 @@
           const stripeClass=stripe.stripeClass || `card-stripe-${itemCategory}`;
           const timestamp=formatTime(item.received);
           const timestampIso=new Date(item.received).toISOString();
-          return `<button class="card" data-id="${item.id}">
+          return `<button class="card review-item" data-id="${item.id}" type="button" role="listitem">
             <span class="card-stripe ${stripeClass}" aria-label="${escapeHtml(stripe.title)}"></span>
             <div class="card-inner">
               <div class="card-header">
@@ -1522,13 +1641,22 @@
             <span class="chev">${'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>'}</span>
           </button>`;
         }).join('');
-        return `<div class="group">
-          <div class="group-header">
-            <div class="group-title">${escapeHtml(presentation.title)} <span class="group-count">${groupItems.length} items</span></div>
-            <p class="group-description">${escapeHtml(presentation.description)}</p>
+        return `<section class="ai-review-group" data-ai-review-group="${groupKey}">
+          <header class="ai-review-group-header">
+            <div class="ai-review-group-header-main">
+              <h3 class="ai-review-group-title">${escapeHtml(presentation.title)}</h3>
+              <p class="ai-review-group-description">${escapeHtml(presentation.description)}</p>
+            </div>
+            <div class="ai-review-group-meta">
+              <span class="ai-review-group-count">${groupItems.length} items</span>
+            </div>
+          </header>
+          <div class="ai-review-group-items">
+            <div class="review-items" role="list">
+              ${cards}
+            </div>
           </div>
-          <div class="group-cards">${cards}</div>
-        </div>`;
+        </section>`;
       }).join('');
     groupContainer.innerHTML=markup;
     groupContainer.querySelectorAll('.card[data-id]').forEach(btn=>{
