@@ -5,8 +5,20 @@
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
+  --card-base-radius: 12px;
+  --card-base-padding: calc(var(--space-4) + var(--space-1) / 2);
+  --card-base-gap: calc(var(--space-2) + var(--space-1) / 2);
+  --card-base-border-color: var(--line);
   --layout-max-width: 1200px;
   --layout-horizontal-pad: var(--shell-header-pad-inline, var(--space-4));
+}
+
+:root {
+  --card-base-border-color: color-mix(
+    in srgb,
+    var(--line, #d0d7e2) 60%,
+    transparent
+  );
 }
 
 body,
@@ -122,4 +134,45 @@ button, .button, .btn, input[type="submit"], input[type="button"] {
   font-size: 14px;
   font-weight: 500;
   line-height: 1.45;
+}
+
+/* Shared card and panel styling */
+.card-surface,
+.section-banner,
+.detail,
+.card-plain,
+.ai-field-grid .ai-field {
+  background-color: var(--card, var(--panel, #ffffff));
+  border-radius: var(--card-base-radius);
+  border: 1px solid var(--card-base-border-color);
+  padding: var(--card-base-padding);
+  text-align: left;
+}
+
+.section-banner {
+  align-items: flex-start;
+}
+
+.section-title {
+  margin: 0 0 var(--card-base-gap) 0;
+}
+
+.section-subtitle {
+  margin: 0;
+}
+
+.detail,
+.card-plain {
+  display: grid;
+  gap: var(--card-base-gap);
+}
+
+.detail > :first-child,
+.card-plain > :first-child {
+  margin-top: 0;
+}
+
+.detail > * + *,
+.card-plain > * + * {
+  margin-top: 0;
 }
