@@ -33,12 +33,45 @@ body {
   padding-bottom: 2rem;
 }
 
+.app-contact-bar {
+  background-color: var(--blomfelt-green);
+  color: var(--blomfelt-white);
+  font-size: 0.85rem;
+  letter-spacing: 0.01em;
+  padding: 0.4rem 0;
+}
+
+.app-contact-bar .inner {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.contact-bar__info {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.contact-bar__info a {
+  color: var(--blomfelt-white);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.contact-bar__info a:hover,
+.contact-bar__info a:focus-visible {
+  text-decoration: underline;
+}
+
 header.app-header {
   background-color: var(--blomfelt-white);
   padding: 0.75rem 0;
   border-radius: 0;
   border: none;
-  box-shadow: none;
+  border-bottom: 1px solid rgba(44, 64, 58, 0.12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
   margin: 0;
 }
 
@@ -193,6 +226,50 @@ header.app-header .app-logo img {
 
 .app-header .primary-menu .link {
   color: var(--blomfelt-green);
+}
+
+.primary-menu .btn {
+  border-radius: 999px;
+  font-weight: 600;
+  padding: 0.35rem 1.25rem;
+  transition: color 0.15s ease, background-color 0.15s ease,
+    border-color 0.15s ease, box-shadow 0.15s ease;
+  border-width: 1px;
+  border-style: solid;
+}
+
+.primary-menu .btn:hover,
+.primary-menu .btn:focus-visible {
+  text-decoration: none;
+}
+
+.primary-menu .btn-primary {
+  background-color: var(--blomfelt-green);
+  color: var(--blomfelt-white);
+  border-color: var(--blomfelt-green);
+  box-shadow: 0 4px 10px rgba(35, 53, 47, 0.2);
+}
+
+.primary-menu .btn-primary:hover,
+.primary-menu .btn-primary:focus-visible {
+  background-color: #1f2e2a;
+  border-color: #1f2e2a;
+  color: var(--blomfelt-white);
+}
+
+.primary-menu .btn-secondary {
+  background-color: var(--blomfelt-white);
+  color: var(--blomfelt-green);
+  border-color: rgba(44, 64, 58, 0.35);
+  box-shadow: 0 2px 6px rgba(19, 33, 30, 0.08);
+}
+
+.primary-menu .btn-secondary:hover,
+.primary-menu .btn-secondary:focus-visible {
+  background-color: #1f2e2a;
+  border-color: #1f2e2a;
+  color: var(--blomfelt-white);
+  box-shadow: 0 4px 10px rgba(35, 53, 47, 0.2);
 }
 
 .app-footer {
