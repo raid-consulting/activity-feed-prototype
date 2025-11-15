@@ -649,15 +649,21 @@
           const categoryKey = AICategory.normalizeCategory(e.ai && e.ai.category || e.aiCategory);
           const stripe = AICategory.getCategoryPresentation(categoryKey);
           const urgentClass = e.status==='urgent' ? ' is-urgent' : '';
+          const timestamp = formatTime(e.received);
+          const timestampIso = new Date(e.received).toISOString();
           return `<button class="card${urgentClass}" data-email="${e.id}">
             <span class="card-stripe ${stripe.stripeClass}" aria-label="${escapeHtml(stripe.title)}"></span>
-            <div class="card-content">
+            <div class="card-inner">
               <div class="card-header">
-                <span class="badge ${info.badgeClass}">${info.badge}</span>
-                <span class="timestamp">${formatTime(e.received)}</span>
+                <div class="card-header-left">
+                  <span class="badge card-chip ${info.badgeClass}">${info.badge}</span>
+                  <div class="card-title title-text">${e.subject}</div>
+                </div>
+                <time class="card-timestamp" datetime="${timestampIso}">${timestamp}</time>
               </div>
-              <div class="title-text">${e.subject}</div>
-              <p class="description">${truncate(e.body)}</p>
+              <div class="card-body">
+                <p class="card-description description">${truncate(e.body)}</p>
+              </div>
             </div>
             <span class="chev">${cardChevron()}</span>
           </button>`;

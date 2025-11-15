@@ -144,20 +144,20 @@ button, .button, .btn, input[type="submit"], input[type="button"] {
   overflow: hidden;
 }
 
-.card-content {
+.card-inner {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0;
+  gap: calc(var(--space-2) + var(--space-1) / 2);
   width: 100%;
   padding: 0;
 }
 
-.card-content > * {
+.card-inner > * {
   width: 100%;
 }
 
-.card-content > :first-child,
+.card-inner > :first-child,
 .card > :first-child,
 .panel > :first-child,
 .summary-card > :first-child,
@@ -168,25 +168,45 @@ button, .button, .btn, input[type="submit"], input[type="button"] {
 .card-header {
   display: flex;
   width: 100%;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: var(--space-2);
-  gap: var(--space-2);
+  gap: calc(var(--space-2) + var(--space-1) / 2);
 }
 
+.card-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.card-chip {
+  align-self: flex-start;
+}
+
+.card-title,
 .title-text {
   margin: 0;
   font-size: 1rem;
   font-weight: 600;
   color: var(--blomfelt-black, #000000);
+  min-width: 0;
 }
 
-.card-content .title-text + .description {
-  margin-top: var(--space-2);
-}
-
-.description {
+.card-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
   margin: 0;
+  min-width: 0;
+}
+
+.card-body > * {
+  margin: 0;
+}
+
+.card-description,
+.description {
   font-size: 0.95rem;
   color: rgba(0, 0, 0, 0.8);
 }
@@ -195,6 +215,7 @@ button, .button, .btn, input[type="submit"], input[type="button"] {
   color: var(--muted);
 }
 
+.card-meta,
 .card .meta,
 .review-items .review-item .meta {
   margin-top: calc(var(--space-2) + var(--space-1) / 2);
@@ -205,10 +226,13 @@ button, .button, .btn, input[type="submit"], input[type="button"] {
   color: rgba(0, 0, 0, 0.65);
 }
 
+.card-timestamp,
 .timestamp {
   font-size: 0.85rem;
   color: rgba(0, 0, 0, 0.65);
   margin-left: auto;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .card .chev {
