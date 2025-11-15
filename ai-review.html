@@ -84,13 +84,14 @@
   .frame > :first-child + *{margin-block-start:0}
   #globalShell{display:contents}
   .global-shell{display:contents}
-  .app-header{background:var(--banner);border:2px solid var(--line);border-radius:12px;
-    padding:var(--space-3) 0;display:flex;justify-content:center;width:100%;box-sizing:border-box;
-    height:var(--shell-header-height);min-height:0;position:relative}
-  .app-header > .inner{display:flex;align-items:center;gap:var(--space-3);width:100%}
-  .app-logo{width:var(--shell-logo-size);height:var(--shell-logo-size);flex:0 0 auto;
-    display:flex;align-items:center;justify-content:center;color:var(--ink);text-decoration:none}
-  .app-logo img{display:block;max-height:100%;width:auto}
+  .app-header{background:var(--blomfelt-white);border:none;border-bottom:1px solid rgba(0,0,0,0.08);
+    border-radius:0;padding:1rem 0;display:flex;justify-content:center;width:100vw;box-sizing:border-box;
+    min-height:0;position:relative;box-shadow:none;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw)}
+  .app-header > .inner{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);
+    width:100%;max-width:min(1100px,100%);margin:0 auto;padding:0 var(--space-4)}
+  .app-logo{flex:0 0 auto;display:flex;align-items:center;justify-content:center;color:var(--ink);
+    text-decoration:none}
+  .app-logo img{display:block;max-height:64px;width:auto}
   .app-title{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;
     color:var(--ink);white-space:nowrap;pointer-events:none}
   .primary-menu{gap:calc(var(--space-2) + var(--space-1) / 2);justify-content:flex-end;overflow-x:auto;flex-wrap:nowrap;margin:0;margin-left:auto;
