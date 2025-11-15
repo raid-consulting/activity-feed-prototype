@@ -352,17 +352,19 @@
     const themeLabel = document.documentElement.getAttribute('data-theme')==='light' ? 'Light' : 'Dark';
     const logoutAttrs = authed ? '' : ' disabled aria-disabled="true"';
     return `
-      <div class="footer-meta" aria-live="polite">
-        <span>Signed in as</span>
-        <strong>${displayName}</strong>
-      </div>
-      <div class="footer-actions">
-        <button class="footer-button btn btn-secondary" type="button" id="logoutBtn"${logoutAttrs}>Logout</button>
-        <div class="footer-theme">
-          <span class="footer-theme-label" id="themeLabel">${themeLabel}</span>
-          <button class="toggle" type="button" id="themeToggle" aria-pressed="false">
-            <span class="knob"></span>
-          </button>
+      <div class="inner">
+        <div class="footer-meta" aria-live="polite">
+          <span>Signed in as</span>
+          <strong>${displayName}</strong>
+        </div>
+        <div class="footer-actions">
+          <button class="footer-button btn btn-secondary" type="button" id="logoutBtn"${logoutAttrs}>Logout</button>
+          <div class="footer-theme">
+            <span class="footer-theme-label" id="themeLabel">${themeLabel}</span>
+            <button class="toggle" type="button" id="themeToggle" aria-pressed="false">
+              <span class="knob"></span>
+            </button>
+          </div>
         </div>
       </div>`;
   }
