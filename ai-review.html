@@ -168,13 +168,13 @@
   .group-cards .card,
   .review-items .card{min-height:0}
 
-  .ai-review-groups{
+  .feed-groups{
     display:flex;
     flex-direction:column;
     gap:calc(var(--space-4) + var(--space-2));
   }
 
-  .ai-review-group{
+  .feed-group{
     background-color:var(--blomfelt-white,#fff);
     border:1px solid rgba(0,0,0,0.08);
     border-radius:18px;
@@ -184,7 +184,7 @@
     --category-accent:var(--category-grey,#666666);
   }
 
-  .ai-review-group-header{
+  .feed-group-header{
     display:flex;
     align-items:flex-start;
     justify-content:space-between;
@@ -197,43 +197,43 @@
     background-color:var(--blomfelt-white,#fff);
   }
 
-  .ai-review-group-header-main{
+  .feed-group-header-main{
     display:flex;
     flex-direction:column;
     gap:calc(var(--space-1) + var(--space-1) / 2);
     min-width:0;
   }
 
-  .ai-review-group-title{
+  .feed-group-title{
     margin:0;
     font-size:1rem;
     font-weight:600;
     color:var(--blomfelt-green,#2c403a);
   }
 
-  .ai-review-group-description{
+  .feed-group-description{
     margin:0;
     font-size:0.95rem;
     color:rgba(0,0,0,0.7);
   }
 
-  .ai-review-group-meta{
+  .feed-group-meta{
     font-size:0.9rem;
     color:rgba(0,0,0,0.6);
     white-space:nowrap;
   }
 
-  .ai-review-group-count{
+  .feed-group-count{
     font-weight:600;
     color:var(--blomfelt-green,#2c403a);
   }
 
-  .ai-review-group-items{
+  .feed-group-items{
     display:block;
     padding:calc(var(--space-4) + var(--space-1) / 2);
   }
 
-  .ai-review-group .review-items{
+  .feed-group .review-items{
     display:grid;
     gap:var(--space-3);
   }
@@ -327,7 +327,7 @@
           </div>
         </div>
         <div class="loading" id="loadingState" role="status">Loading review signals…</div>
-        <div class="stack ai-review-groups" id="groupContainer" hidden></div>
+        <div class="stack feed-groups" id="groupContainer" hidden></div>
         <div class="inline-empty" id="noResultsNotice" hidden role="status" aria-live="polite">No review items match your filters.</div>
         <div class="empty" id="emptyState" data-empty-banner="true" hidden role="region" aria-label="AI review empty state" tabindex="-1">
           <p>No items to review yet.</p>
@@ -1576,17 +1576,17 @@
             <span class="chev">${'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>'}</span>
           </button>`;
         }).join('');
-        return `<section class="ai-review-group${sectionTheme}" data-ai-review-group="${groupKey}">
-          <header class="ai-review-group-header">
-            <div class="ai-review-group-header-main">
-              <h3 class="ai-review-group-title">${escapeHtml(presentation.title)}</h3>
-              <p class="ai-review-group-description">${escapeHtml(presentation.description)}</p>
+        return `<section class="feed-group${sectionTheme}" data-feed-group="${groupKey}">
+          <header class="feed-group-header">
+            <div class="feed-group-header-main">
+              <h3 class="feed-group-title">${escapeHtml(presentation.title)}</h3>
+              <p class="feed-group-description">${escapeHtml(presentation.description)}</p>
             </div>
-            <div class="ai-review-group-meta">
-              <span class="ai-review-group-count">${groupItems.length} items</span>
+            <div class="feed-group-meta">
+              <span class="feed-group-count">${groupItems.length} items</span>
             </div>
           </header>
-          <div class="ai-review-group-items">
+          <div class="feed-group-items">
             <div class="review-items" role="list">
               ${cards}
             </div>
