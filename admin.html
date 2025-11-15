@@ -159,8 +159,18 @@
   .override-status[data-status="success"]{color:var(--green)}
   .crumbs{display:flex;align-items:center;gap:var(--space-2);color:var(--muted);margin-bottom:var(--space-3)}
   .crumbs strong{color:var(--ink)}
-  .crumbs button{background:none;border:none;color:var(--ink);cursor:pointer;padding:0}
-  .crumbs button:hover{text-decoration:underline}
+  .crumbs a,
+  .crumbs button{background-color:transparent;border:1px solid transparent;border-radius:999px;color:var(--ink);cursor:pointer;
+    padding:0.15rem 0.75rem;text-decoration:none;transition:background-color .2s ease,color .2s ease,box-shadow .2s ease;
+    --crumb-hover-bg:var(--blomfelt-green,#2c403a);--crumb-hover-color:var(--blomfelt-white,#ffffff)}
+  .crumbs a:hover,
+  .crumbs button:hover,
+  .crumbs a:focus-visible,
+  .crumbs button:focus-visible{background-color:var(--crumb-hover-bg);color:var(--crumb-hover-color);
+    box-shadow:0 4px 12px rgba(0,0,0,0.12);text-decoration:none}
+  .crumbs a:focus-visible,
+  .crumbs button:focus-visible{outline:2px solid var(--blomfelt-bright-blue,#afd0e7);outline-offset:2px}
+  .crumbs [data-hover-tone="light"]{--crumb-hover-bg:var(--blomfelt-yellow,#fdf6e1);--crumb-hover-color:var(--blomfelt-green,#2c403a)}
 </style>
 <link rel="stylesheet" href="styles.css" />
 </head>

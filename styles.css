@@ -7,6 +7,10 @@
   --space-4: 16px;
   --layout-max-width: 1200px;
   --layout-horizontal-pad: var(--shell-header-pad-inline, var(--space-4));
+  --category-green: var(--blomfelt-green, #2c403a);
+  --category-blue: var(--blomfelt-bright-blue, #afd0e7);
+  --category-red: var(--blomfelt-coral, #ffa899);
+  --category-grey: #666666;
 }
 
 body,
@@ -507,6 +511,22 @@ input[type="search"]:focus-visible {
   border-color: #24332f;
 }
 
+.category-theme-green {
+  --category-accent: var(--category-green);
+}
+
+.category-theme-blue {
+  --category-accent: var(--category-blue);
+}
+
+.category-theme-red {
+  --category-accent: var(--category-red);
+}
+
+.category-theme-grey {
+  --category-accent: var(--category-grey, #666666);
+}
+
 /* Shared Blomfelt card pattern */
 .card,
 .panel,
@@ -525,6 +545,10 @@ input[type="search"]:focus-visible {
   color: var(--blomfelt-black, #000000);
   min-height: 0;
   overflow: hidden;
+  width: 100%;
+  gap: calc(var(--space-2) + var(--space-1) / 2);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.2s ease, transform 0.12s ease, border-color 0.2s ease;
 }
 
 .card-inner {
@@ -626,6 +650,7 @@ input[type="search"]:focus-visible {
   flex-shrink: 0;
 }
 
+
 .card .chev {
   position: absolute;
   top: 50%;
@@ -636,33 +661,6 @@ input[type="search"]:focus-visible {
   align-items: center;
   justify-content: center;
   transition: opacity 0.15s ease;
-}
-
-.card-stripe {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  border-radius: 12px 12px 0 0;
-  background: var(--grey, rgba(0, 0, 0, 0.15));
-  pointer-events: none;
-}
-
-.card-stripe-green {
-  background: var(--green);
-}
-
-.card-stripe-red {
-  background: var(--red);
-}
-
-.card-stripe-blue {
-  background: var(--blue);
-}
-
-.card-stripe-grey {
-  background: var(--grey, rgba(0, 0, 0, 0.25));
 }
 
 .badge {
@@ -678,18 +676,18 @@ input[type="search"]:focus-visible {
 
 button.card {
   cursor: pointer;
-  transition: box-shadow 0.15s ease, transform 0.1s ease, border-color 0.15s ease;
+  transition: box-shadow 0.2s ease, transform 0.12s ease, border-color 0.2s ease;
 }
 
 button.card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-  border-color: rgba(0, 0, 0, 0.12);
-  transform: translateY(-1px);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.12);
+  border-color: rgba(0, 0, 0, 0.16);
+  transform: translateY(-2px);
 }
 
 button.card:active {
   transform: translateY(0);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.1);
 }
 
 button.card:focus-visible {
@@ -717,6 +715,8 @@ button.card:hover .chev {
   border-radius: 18px;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
   overflow: hidden;
+  position: relative;
+  --category-accent: var(--category-grey);
 }
 
 .activity-group-header {
@@ -726,6 +726,10 @@ button.card:hover .chev {
   gap: var(--space-3);
   padding: calc(var(--space-4) + var(--space-1) / 2);
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  border-top: var(--card-stripe, 6px) solid var(--category-accent, transparent);
+  border-top-left-radius: 18px;
+  border-top-right-radius: 18px;
+  background-color: var(--blomfelt-white, #ffffff);
 }
 
 .activity-group-header-main {
@@ -760,67 +764,13 @@ button.card:hover .chev {
 }
 
 .activity-group-items {
-  display: flex;
-  flex-direction: column;
+  display: block;
+  padding: calc(var(--space-4) + var(--space-1) / 2);
 }
 
 .activity-group .activity-items {
-  display: flex;
-  flex-direction: column;
-}
-
-.activity-group .card {
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  background-color: transparent;
-  padding: calc(var(--space-4) + var(--space-1) / 2);
-  margin: 0;
-  align-items: flex-start;
-  text-align: left;
-}
-
-.activity-group .card + .card {
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-.activity-group .card:first-child {
-  border-top-left-radius: 18px;
-  border-top-right-radius: 18px;
-}
-
-.activity-group .card:last-child {
-  border-bottom-left-radius: 18px;
-  border-bottom-right-radius: 18px;
-}
-
-.activity-group .card:hover {
-  transform: none;
-  box-shadow: none;
-  background-color: rgba(0, 0, 0, 0.02);
-}
-
-.activity-group .card:active {
-  transform: none;
-  box-shadow: none;
-}
-
-.activity-group .card:focus-visible {
-  outline-offset: 2px;
-}
-
-.activity-group .card .card-stripe {
-  border-radius: 0;
-}
-
-.activity-group .card:first-child .card-stripe {
-  border-top-left-radius: 18px;
-  border-top-right-radius: 18px;
-}
-
-.activity-group .card:last-child .card-stripe {
-  border-bottom-left-radius: 18px;
-  border-bottom-right-radius: 18px;
+  display: grid;
+  gap: var(--space-3);
 }
 
 @media (max-width: 720px) {
