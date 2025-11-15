@@ -601,7 +601,7 @@
           <p class="section-subtitle">Monitor inbox triage and recent automation updates.</p>
         </header>
         <div class="feed-content activity-feed" id="feedContent">
-          <div class="stack activity-groups" id="cardList"></div>
+          <div class="stack feed-groups" id="cardList"></div>
         </div>
         <div class="detail-view" id="detailView" aria-hidden="true">
           <div class="detail-head">
@@ -643,11 +643,10 @@
         const cards = items.map(e => {
           const info = statusInfo[e.status] || statusInfo.info;
           const categoryKey = AICategory.normalizeCategory(e.ai && e.ai.category || e.aiCategory);
-          const categoryPresentation = AICategory.getCategoryPresentation(categoryKey);
-          const categoryAttr = escapeHtml(categoryPresentation.key);
+          const categoryAttr = escapeHtml(categoryKey);
           const timestamp = formatTime(e.received);
           const timestampIso = new Date(e.received).toISOString();
-          return `<button class="card" data-email="${e.id}" data-ai-category="${categoryAttr}">
+          return `<button class="card review-item" data-email="${e.id}" data-ai-category="${categoryAttr}">
             <div class="card-inner">
               <div class="card-header">
                 <div class="card-header-left">
@@ -664,23 +663,23 @@
           </button>`;
         }).join('');
         const countLabel = `${items.length} ${items.length === 1 ? 'item' : 'items'}`;
-        const description = group.description ? `<p class="activity-group-description">${group.description}</p>` : '';
+        const description = group.description ? `<p class="feed-group-description">${group.description}</p>` : '';
         const sectionCategoryKey = AICategory.normalizeCategory(group.category);
         const sectionPresentation = AICategory.getCategoryPresentation(sectionCategoryKey);
         const sectionTheme = sectionPresentation.themeClass ? ` ${sectionPresentation.themeClass}` : '';
         const sectionCategoryAttr = escapeHtml(sectionCategoryKey);
-        return `<section class="activity-group${sectionTheme}" data-activity-group="${group.title}" data-category="${sectionCategoryAttr}">
-          <header class="activity-group-header">
-            <div class="activity-group-header-main">
-              <h2 class="activity-group-title">${group.title}</h2>
+        return `<section class="feed-group${sectionTheme}" data-feed-group="${group.title}" data-category="${sectionCategoryAttr}">
+          <header class="feed-group-header">
+            <div class="feed-group-header-main">
+              <h2 class="feed-group-title">${group.title}</h2>
               ${description}
             </div>
-            <div class="activity-group-meta">
-              <span class="activity-group-count">${countLabel}</span>
+            <div class="feed-group-meta">
+              <span class="feed-group-count">${countLabel}</span>
             </div>
           </header>
-          <div class="activity-group-items">
-            <div class="activity-items">${cards}</div>
+          <div class="feed-group-items">
+            <div class="review-items">${cards}</div>
           </div>
         </section>`;
       }).join('');
