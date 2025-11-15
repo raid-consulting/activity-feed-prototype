@@ -74,11 +74,11 @@
   *{box-sizing:border-box} html,body{height:100%}
   body{margin:0;background:var(--bg);color:var(--text);
     min-height:100vh;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;
-    gap:var(--page-pad);padding:var(--page-pad);
+    gap:0;padding:0;
     overflow-x:hidden;transition:background .2s,color .2s}
-  .frame{margin:0 auto;width:min(1100px,100%);max-width:100%;background:var(--panel);border:2px solid var(--line);
-    border-radius:18px;padding:var(--space-4);box-shadow:var(--shadow);
-    display:grid;gap:0;flex:1 0 auto;min-height:0;align-content:start;align-items:start}
+  .frame{margin:0;width:100%;max-width:none;background:transparent;border:none;
+    border-radius:0;padding:0;box-shadow:none;
+    display:grid;gap:0;flex:1 0 auto;min-height:100vh;align-content:start;align-items:start;overflow:visible}
   .frame > *{margin-block:0}
   .frame > :first-child{margin-block-start:0}
   .frame > :first-child + *{margin-block-start:0}
@@ -132,9 +132,10 @@
   .knob{width:22px;height:22px;border-radius:50%;background:var(--ink);position:absolute;top:50%;transform:translateY(-50%);left:4px;transition:left .2s}
   html[data-theme="light"] .knob{left:28px}
   .app-footer{position:sticky;bottom:0;background:var(--banner);border-top:2px solid var(--line);
-    padding:var(--space-4) calc(var(--space-4) + var(--space-3));
-    padding-bottom:calc(var(--space-4) + var(--footer-safe-area));display:flex;flex-wrap:wrap;gap:var(--space-3);align-items:center;
-    justify-content:space-between;z-index:100;box-shadow:0 -6px 18px rgba(6,11,20,.24);margin-inline:calc(-1 * var(--page-pad))}
+    padding:var(--space-4) 0;
+    padding-bottom:calc(var(--space-4) + var(--footer-safe-area));width:100%;box-sizing:border-box;
+    z-index:100;box-shadow:0 -6px 18px rgba(6,11,20,.24);margin:0}
+  .app-footer > .inner{display:flex;flex-wrap:wrap;gap:var(--space-3);align-items:center;justify-content:space-between}
   .footer-meta{display:flex;flex-direction:column;gap:calc(var(--space-1) / 2);color:var(--muted)}
   .footer-meta strong{color:var(--ink)}
   .footer-actions{display:flex;gap:var(--space-3);align-items:center;flex-wrap:wrap}
@@ -451,17 +452,19 @@
     const themeLabel=document.documentElement.getAttribute('data-theme')==='light'?'Light':'Dark';
     const logoutAttrs=authed?'':' disabled aria-disabled="true"';
     return `
-      <div class="footer-meta" aria-live="polite">
-        <span>Signed in as</span>
-        <strong>${displayName}</strong>
-      </div>
-      <div class="footer-actions">
-        <button class="footer-button btn btn-secondary" type="button" id="logoutBtn"${logoutAttrs}>Logout</button>
-        <div class="footer-theme">
-          <span class="footer-theme-label" id="themeLabel">${themeLabel}</span>
-          <button class="toggle" type="button" id="themeToggle" aria-pressed="false">
-            <span class="knob"></span>
-          </button>
+      <div class="inner">
+        <div class="footer-meta" aria-live="polite">
+          <span>Signed in as</span>
+          <strong>${displayName}</strong>
+        </div>
+        <div class="footer-actions">
+          <button class="footer-button btn btn-secondary" type="button" id="logoutBtn"${logoutAttrs}>Logout</button>
+          <div class="footer-theme">
+            <span class="footer-theme-label" id="themeLabel">${themeLabel}</span>
+            <button class="toggle" type="button" id="themeToggle" aria-pressed="false">
+              <span class="knob"></span>
+            </button>
+          </div>
         </div>
       </div>`;
   }
