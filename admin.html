@@ -263,6 +263,14 @@
     const navBody = navLinks || '<span class="primary-menu__placeholder">Menu unavailable</span>';
     return `
       <div class="global-shell" data-shell>
+        <div class="contact-bar" role="region" aria-label="Blomfelt contact information">
+          <div class="inner">
+            <div class="contact-bar__info">
+              <span><span class="contact-bar__label">E:</span> <a href="mailto:info@blomfelt.dk">info@blomfelt.dk</a></span>
+              <span><span class="contact-bar__label">T:</span> <a href="tel:+4570209120">70 20 91 20</a></span>
+            </div>
+          </div>
+        </div>
         <header class="app-header" data-shell-header data-test="app-header">
           <div class="inner">
             <a class="app-logo" data-shell-logo href="index.html" aria-label="Blomfelt">
