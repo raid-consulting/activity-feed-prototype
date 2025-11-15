@@ -129,7 +129,7 @@ async function mountAiReview({ loader, seedEmails, cachedEmails }={}){
   });
 
   const documentElement = {
-    attributes: { 'data-theme': 'dark' },
+    attributes: { 'data-theme': 'light' },
     setAttribute(name, value){ this.attributes[name] = value; },
     getAttribute(name){ return this.attributes[name]; }
   };
@@ -191,9 +191,6 @@ async function mountAiReview({ loader, seedEmails, cachedEmails }={}){
   detailBackBtn.addEventListener = () => {};
   const globalShellHost = registerElement('globalShell', createElement('globalShell'));
   const footer = registerElement('footer', createElement('footer'));
-  const themeToggle = registerElement('themeToggle', createElement('themeToggle'));
-  themeToggle.addEventListener = () => {};
-  const themeLabel = registerElement('themeLabel', createElement('themeLabel'));
   const logoutBtn = registerElement('logoutBtn', createElement('logoutBtn'));
   logoutBtn.disabled = true;
 

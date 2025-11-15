@@ -255,11 +255,7 @@ header.app-header .app-logo img {
 
 .app-footer a,
 .app-footer .footer-meta,
-.app-footer .footer-meta strong,
-.app-footer .footer-theme-label,
-.app-footer .footer-button,
-.app-footer .toggle,
-.app-footer .toggle .knob {
+.app-footer .footer-meta strong {
   color: var(--blomfelt-white);
 }
 
