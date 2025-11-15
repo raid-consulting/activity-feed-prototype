@@ -148,10 +148,88 @@
 
   .review-category{margin:var(--space-4) 0;padding-block:var(--space-3)}
   .review-category h2{margin:0 0 var(--space-3) 0}
-  .review-items{gap:var(--space-2)}
-  .review-items .card{padding:0}
-  .review-items .card-content{padding:var(--space-4)}
-  .review-items button{padding:0 var(--space-4)}
+  .review-items{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+    gap:calc(var(--space-4) + var(--space-1) / 2);
+  }
+  .review-items .card{
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    justify-content:flex-start;
+    width:100%;
+    max-width:100%;
+    padding:calc(var(--space-4) + var(--space-1) / 2) calc(var(--space-4) + var(--space-2));
+    padding-left:calc(var(--space-4) * 2);
+    background:var(--blomfelt-white);
+    border:1px solid rgba(0,0,0,.05);
+    border-radius:12px;
+    text-align:left;
+    box-shadow:0 2px 6px rgba(0,0,0,.04);
+    transition:box-shadow .15s ease,transform .1s ease,border-color .15s ease;
+  }
+  .review-items .card:focus-visible{
+    outline:2px solid var(--blomfelt-bright-blue);
+    outline-offset:2px;
+  }
+  .review-items .card:hover{
+    box-shadow:0 6px 18px rgba(0,0,0,.08);
+    border-color:rgba(0,0,0,.12);
+    transform:translateY(-1px);
+  }
+  .review-items .card:active{
+    transform:translateY(0);
+    box-shadow:0 3px 9px rgba(0,0,0,.06);
+  }
+  .review-items .card-content{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:0;
+    width:100%;
+    padding:0;
+  }
+  .review-items .card-content > *{
+    margin:0;
+  }
+  .review-items .card-content > * + *{
+    margin-top:var(--space-2);
+  }
+  .review-items .card-header{
+    width:100%;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:var(--space-2);
+  }
+  .review-items .timestamp{
+    font-size:12px;
+    color:rgba(0,0,0,.55);
+  }
+  .review-items .title-text{
+    font-size:15px;
+    font-weight:600;
+    color:var(--blomfelt-black);
+  }
+  .review-items .description{
+    font-size:13px;
+    color:rgba(0,0,0,.8);
+  }
+  .review-items .meta{
+    font-size:12px;
+    color:rgba(0,0,0,.65);
+    opacity:1;
+  }
+  .review-items .card .card-stripe{
+    position:absolute;
+    left:12px;
+    top:12px;
+    bottom:12px;
+    width:4px;
+    border-radius:999px;
+  }
 
   .controls{display:flex;flex-wrap:wrap;gap:var(--space-3);justify-content:space-between;align-items:center}
   .filters{display:flex;flex-wrap:wrap;gap:var(--space-2)}
