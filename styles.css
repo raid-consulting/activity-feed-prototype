@@ -11,7 +11,7 @@
 
 body,
 main {
-  padding-inline: var(--space-4);
+  padding-inline: 0;
 }
 
 body {
@@ -19,12 +19,18 @@ body {
   color: var(--text);
 }
 
-:is(header.app-header, .container .inner) {
+:is(header.app-header > .inner, .container > .inner, .app-footer > .inner) {
   max-width: var(--layout-max-width);
   width: 100%;
   margin: 0 auto;
   padding-inline: var(--layout-horizontal-pad);
   box-sizing: border-box;
+}
+
+.container {
+  width: 100%;
+  padding-top: 1.5rem;
+  padding-bottom: 2rem;
 }
 
 header.app-header {
@@ -119,12 +125,11 @@ header.app-header {
   }
 }
 
-header.app-header > .inner {
-  max-width: var(--layout-max-width);
-  width: 100%;
-  margin: 0 auto;
-  padding-inline: var(--layout-horizontal-pad);
-  box-sizing: border-box;
+@media (max-width: 768px) {
+  :is(header.app-header > .inner, .container > .inner, .app-footer > .inner) {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
 }
 
 h1.page-title,
@@ -193,6 +198,14 @@ header.app-header .app-logo img {
 .app-footer {
   background-color: var(--blomfelt-green);
   color: var(--blomfelt-white);
+}
+
+.app-footer > .inner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
 }
 
 .app-footer a,
