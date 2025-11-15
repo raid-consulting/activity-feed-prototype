@@ -180,6 +180,8 @@
     border-radius:18px;
     box-shadow:0 12px 30px rgba(0,0,0,0.08);
     overflow:hidden;
+    position:relative;
+    --category-accent:var(--category-grey,#666666);
   }
 
   .ai-review-group-header{
@@ -189,6 +191,10 @@
     gap:var(--space-3);
     padding:calc(var(--space-4) + var(--space-1) / 2);
     border-bottom:1px solid rgba(0,0,0,0.08);
+    border-top:var(--card-stripe,6px) solid var(--category-accent,transparent);
+    border-top-left-radius:18px;
+    border-top-right-radius:18px;
+    background-color:var(--blomfelt-white,#fff);
   }
 
   .ai-review-group-header-main{
@@ -223,68 +229,13 @@
   }
 
   .ai-review-group-items{
-    display:flex;
-    flex-direction:column;
+    display:block;
+    padding:calc(var(--space-4) + var(--space-1) / 2);
   }
 
   .ai-review-group .review-items{
-    display:flex;
-    flex-direction:column;
-    gap:0;
-  }
-
-  .ai-review-group .review-item{
-    border:0;
-    border-radius:0;
-    box-shadow:none;
-    background-color:transparent;
-    padding:calc(var(--space-4) + var(--space-1) / 2);
-    margin:0;
-    align-items:flex-start;
-    text-align:left;
-  }
-
-  .ai-review-group .review-item + .review-item{
-    border-top:1px solid rgba(0,0,0,0.06);
-  }
-
-  .ai-review-group .review-item:first-child{
-    border-top-left-radius:18px;
-    border-top-right-radius:18px;
-  }
-
-  .ai-review-group .review-item:last-child{
-    border-bottom-left-radius:18px;
-    border-bottom-right-radius:18px;
-  }
-
-  .ai-review-group .review-item:hover{
-    transform:none;
-    box-shadow:none;
-    background-color:rgba(0,0,0,0.02);
-  }
-
-  .ai-review-group .review-item:active{
-    transform:none;
-    box-shadow:none;
-  }
-
-  .ai-review-group .review-item:focus-visible{
-    outline-offset:2px;
-  }
-
-  .ai-review-group .review-item .card-stripe{
-    border-radius:0;
-  }
-
-  .ai-review-group .review-item:first-child .card-stripe{
-    border-top-left-radius:18px;
-    border-top-right-radius:18px;
-  }
-
-  .ai-review-group .review-item:last-child .card-stripe{
-    border-bottom-left-radius:18px;
-    border-bottom-right-radius:18px;
+    display:grid;
+    gap:var(--space-3);
   }
   
 
@@ -311,8 +262,18 @@
   .detail-head{display:flex;flex-wrap:wrap;gap:calc(var(--space-2) + var(--space-1) / 2);align-items:center;justify-content:space-between}
   .crumbs{display:flex;align-items:center;gap:var(--space-2);color:var(--muted)}
   .crumbs strong{color:var(--ink)}
-  .crumbs button{background:none;border:none;color:var(--ink);cursor:pointer;padding:0}
-  .crumbs button:hover{text-decoration:underline}
+  .crumbs a,
+  .crumbs button{background-color:transparent;border:1px solid transparent;border-radius:999px;color:var(--ink);cursor:pointer;
+    padding:0.15rem 0.75rem;text-decoration:none;transition:background-color .2s ease,color .2s ease,box-shadow .2s ease;
+    --crumb-hover-bg:var(--blomfelt-green,#2c403a);--crumb-hover-color:var(--blomfelt-white,#ffffff)}
+  .crumbs a:hover,
+  .crumbs button:hover,
+  .crumbs a:focus-visible,
+  .crumbs button:focus-visible{background-color:var(--crumb-hover-bg);color:var(--crumb-hover-color);
+    box-shadow:0 4px 12px rgba(0,0,0,0.12);text-decoration:none}
+  .crumbs a:focus-visible,
+  .crumbs button:focus-visible{outline:2px solid var(--blomfelt-bright-blue,#afd0e7);outline-offset:2px}
+  .crumbs [data-hover-tone="light"]{--crumb-hover-bg:var(--blomfelt-yellow,#fdf6e1);--crumb-hover-color:var(--blomfelt-green,#2c403a)}
   .detail .label{color:var(--muted);margin-bottom:6px}
   .detail h2{margin:0 0 var(--space-2) 0;color:var(--ink)}
   .detail p{margin:0 0 var(--space-3) 0}
@@ -709,7 +670,13 @@
   const AICategory = window.AICategory || {
     AI_CATEGORY_COPY: {},
     normalizeCategory: () => 'grey',
-    getCategoryPresentation: () => ({ key: 'grey', title: 'Unassessed', description: 'Awaiting AI review.', stripeClass: 'card-stripe-grey', ariaLabel: 'Unassessed' })
+    getCategoryPresentation: () => ({
+      key: 'grey',
+      title: 'Unassessed',
+      description: 'Awaiting AI review.',
+      themeClass: 'category-theme-grey',
+      ariaLabel: 'Unassessed'
+    })
   };
 
   const CATEGORY_INFO={
@@ -1575,6 +1542,7 @@
         const groupItems=filtered.filter(item=>getCategory(item)===groupKey);
         if(!groupItems.length) return '';
         const presentation=AICategory.getCategoryPresentation(groupKey);
+        const sectionTheme=presentation.themeClass ? ` ${presentation.themeClass}` : '';
         const cards=groupItems.map(item=>{
           const ai=item.ai||{};
           const synopsis=ai.notes || item.aiSynopsis || 'Metadata pending for this message.';
@@ -1585,12 +1553,10 @@
             metaParts.push('Manual override');
           }
           const itemCategory=getCategory(item);
-          const stripe=AICategory.getCategoryPresentation(itemCategory);
-          const stripeClass=stripe.stripeClass || `card-stripe-${itemCategory}`;
+          const itemCategoryAttr=escapeHtml(itemCategory);
           const timestamp=formatTime(item.received);
           const timestampIso=new Date(item.received).toISOString();
-          return `<button class="card review-item" data-id="${item.id}" type="button" role="listitem">
-            <span class="card-stripe ${stripeClass}" aria-label="${escapeHtml(stripe.title)}"></span>
+          return `<button class="card review-item" data-id="${item.id}" data-ai-category="${itemCategoryAttr}" type="button" role="listitem">
             <div class="card-inner">
               <div class="card-header">
                 <div class="card-header-left">
@@ -1606,7 +1572,7 @@
             <span class="chev">${'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>'}</span>
           </button>`;
         }).join('');
-        return `<section class="ai-review-group" data-ai-review-group="${groupKey}">
+        return `<section class="ai-review-group${sectionTheme}" data-ai-review-group="${groupKey}">
           <header class="ai-review-group-header">
             <div class="ai-review-group-header-main">
               <h3 class="ai-review-group-title">${escapeHtml(presentation.title)}</h3>

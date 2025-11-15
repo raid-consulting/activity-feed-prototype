@@ -156,8 +156,18 @@
   .detail-head{display:flex;flex-wrap:wrap;gap:calc(var(--space-2) + var(--space-1) / 2);align-items:center;justify-content:space-between}
   .crumbs{display:flex;align-items:center;gap:var(--space-2);color:var(--muted)}
   .crumbs strong{color:var(--ink)}
-  .crumbs button{background:none;border:none;color:var(--ink);cursor:pointer;padding:0}
-  .crumbs button:hover{text-decoration:underline}
+  .crumbs a,
+  .crumbs button{background-color:transparent;border:1px solid transparent;border-radius:999px;color:var(--ink);cursor:pointer;
+    padding:0.15rem 0.75rem;text-decoration:none;transition:background-color .2s ease,color .2s ease,box-shadow .2s ease;
+    --crumb-hover-bg:var(--blomfelt-green,#2c403a);--crumb-hover-color:var(--blomfelt-white,#ffffff)}
+  .crumbs a:hover,
+  .crumbs button:hover,
+  .crumbs a:focus-visible,
+  .crumbs button:focus-visible{background-color:var(--crumb-hover-bg);color:var(--crumb-hover-color);
+    box-shadow:0 4px 12px rgba(0,0,0,0.12);text-decoration:none}
+  .crumbs a:focus-visible,
+  .crumbs button:focus-visible{outline:2px solid var(--blomfelt-bright-blue,#afd0e7);outline-offset:2px}
+  .crumbs [data-hover-tone="light"]{--crumb-hover-bg:var(--blomfelt-yellow,#fdf6e1);--crumb-hover-color:var(--blomfelt-green,#2c403a)}
 
   .feed-content[hidden]{display:none !important}
 
@@ -191,7 +201,13 @@
   const AICategory = window.AICategory || {
     AI_CATEGORY_COPY: {},
     normalizeCategory: () => 'grey',
-    getCategoryPresentation: () => ({ key: 'grey', title: 'Unassessed', description: 'Awaiting AI review.', stripeClass: 'card-stripe-grey', ariaLabel: 'Unassessed' })
+    getCategoryPresentation: () => ({
+      key: 'grey',
+      title: 'Unassessed',
+      description: 'Awaiting AI review.',
+      themeClass: 'category-theme-grey',
+      ariaLabel: 'Unassessed'
+    })
   };
 
   function seedDB(){
@@ -621,12 +637,12 @@
         const cards = items.map(e => {
           const info = statusInfo[e.status] || statusInfo.info;
           const categoryKey = AICategory.normalizeCategory(e.ai && e.ai.category || e.aiCategory);
-          const stripe = AICategory.getCategoryPresentation(categoryKey);
+          const categoryPresentation = AICategory.getCategoryPresentation(categoryKey);
+          const categoryAttr = escapeHtml(categoryPresentation.key);
           const urgentClass = e.status==='urgent' ? ' is-urgent' : '';
           const timestamp = formatTime(e.received);
           const timestampIso = new Date(e.received).toISOString();
-          return `<button class="card${urgentClass}" data-email="${e.id}">
-            <span class="card-stripe ${stripe.stripeClass}" aria-label="${escapeHtml(stripe.title)}"></span>
+          return `<button class="card${urgentClass}" data-email="${e.id}" data-ai-category="${categoryAttr}">
             <div class="card-inner">
               <div class="card-header">
                 <div class="card-header-left">
