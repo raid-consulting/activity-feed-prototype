@@ -373,6 +373,7 @@
   <footer id="footer" class="app-footer" role="contentinfo"></footer>
 <script src="footer-overscroll.js"></script>
 <script src="refresh-utils.js"></script>
+<script src="list-filters.js"></script>
 <script src="ai-classifier.js"></script>
 <script src="ai-category-constants.js"></script>
 <script>
@@ -1467,6 +1468,29 @@
   const degradedRetry=document.getElementById('degradedRetry');
   const noResultsNotice=document.getElementById('noResultsNotice');
   const errorMessage=errorState?errorState.querySelector('p'):null;
+  let filterController=null;
+
+  if(window.ListFilters && filterButtons.length){
+    filterController=window.ListFilters.createListFilterController({
+      filterButtons,
+      searchInput,
+      countRoot:document,
+      getCategory,
+      getSearchText:getSearchHaystack
+    });
+    if(filterController){
+      const initial=filterController.getState();
+      if(initial){
+        state.filter=initial.filter || state.filter;
+        state.search=initial.search || state.search;
+      }
+      filterController.onChange(({filter,search})=>{
+        state.filter=filter;
+        state.search=search;
+        render();
+      });
+    }
+  }
 
   function normalizeItems(items){
     return Array.isArray(items) ? items.slice().sort((a,b)=>b.received-a.received) : [];
@@ -1496,10 +1520,9 @@
 
   function formatTime(ts){ return new Date(ts).toLocaleString(); }
 
-  function matchesSearch(item, term){
-    if(!term) return true;
+  function getSearchHaystack(item){
     const ai=item.ai||{};
-    const hay=[
+    return [
       item.subject,
       item.from,
       item.body,
@@ -1510,10 +1533,18 @@
       ...(ai.required_permissions||[]),
       ...(ai.required_context||[])
     ].map(v=>String(v||'').toLowerCase()).join(' ');
-    return hay.includes(term.toLowerCase());
+  }
+
+  function matchesSearch(item, term){
+    if(!term) return true;
+    return getSearchHaystack(item).includes(term.toLowerCase());
   }
 
   function updateCounts(items){
+    if(filterController){
+      filterController.setItems(items);
+      return;
+    }
     const counts={green:0,blue:0,red:0,grey:0};
     items.forEach(item=>{ counts[getCategory(item)]++; });
     filterButtons.forEach(btn=>{
@@ -1527,6 +1558,9 @@
 
   function getFilteredItems(source){
     const list=Array.isArray(source)?source:state.items;
+    if(filterController){
+      return filterController.getFilteredItems(list);
+    }
     return list.filter(item=>{
       const category=getCategory(item);
       if(state.filter!=='all' && category!==state.filter) return false;
@@ -2042,27 +2076,6 @@
     });
     autoRefreshController.start();
   }
-
-  function setFilter(value){
-    state.filter=value;
-    filterButtons.forEach(btn=>{
-      const pressed=btn.getAttribute('data-filter')===value;
-      btn.setAttribute('aria-pressed', pressed?'true':'false');
-    });
-    render();
-  }
-
-  filterButtons.forEach(btn=>{
-    btn.addEventListener('click',()=>{
-      const value=btn.getAttribute('data-filter');
-      setFilter(value);
-    });
-  });
-
-  searchInput.addEventListener('input',()=>{
-    state.search=searchInput.value.trim().toLowerCase();
-    render();
-  });
 
   function openDetail(id, options={}){
     const email=state.items.find(item=>item.id===id);

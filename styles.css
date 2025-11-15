@@ -451,6 +451,54 @@ input[type="search"]:focus-visible {
   border-color: var(--blomfelt-green, #2c403a);
 }
 
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: space-between;
+  align-items: center;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.search {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.search input {
+  width: min(260px, 70vw);
+}
+
+.search input::placeholder {
+  color: var(--muted);
+}
+
+.sr-only {
+  position: absolute;
+  clip: rect(1px, 1px, 1px, 1px);
+  clip-path: inset(0 0 99.9% 99.9%);
+  height: 1px;
+  width: 1px;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+}
+
+.inline-empty {
+  padding: calc(var(--space-4) + var(--space-2));
+  border: 2px dashed var(--line);
+  border-radius: 12px;
+  text-align: center;
+  color: var(--muted);
+  background: var(--card);
+}
+
 .pill-count {
   display: inline-flex;
   align-items: center;
