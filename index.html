@@ -523,6 +523,8 @@
           <section class="page-sections" data-page-root>${content}</section>
         </div>
       </div>`;
+    document.body.classList.toggle('page-login', !authed);
+    document.body.classList.toggle('page-app', authed);
     const pageRoot = el.querySelector('[data-page-root]');
     if(pageRoot && pageRoot.firstElementChild){
       const first = pageRoot.firstElementChild;

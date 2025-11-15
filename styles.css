@@ -178,6 +178,10 @@ h2 {
   color: var(--blomfelt-green);
 }
 
+body.page-login .app-logo {
+  display: none;
+}
+
 .app-title,
 .brand-title,
 .primary-menu__placeholder {
