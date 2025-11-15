@@ -1,5 +1,17 @@
 /* Global spacing scale */
 :root {
+  /* Blomfelt color system */
+  --bf-green: #2C403A;
+  --bf-black: #000000;
+  --bf-bright-blue: #AFD0E7;
+  --bf-yellow: #FDF6E1;
+  --bf-white: #FFFFFF;
+  --bf-coral: #FFA899;
+  --bf-sunny: #F9C271;
+  --bf-lavender: #E5C8F8;
+
+  --focus: var(--bf-bright-blue);
+
   --space-0: 0;
   --space-1: 4px;
   --space-2: 8px;
@@ -39,7 +51,7 @@ h2.section-title,
 
 /* Global typography */
 html, body {
-  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: "Metropolis", "Montserrat", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   font-size: 14px;
   line-height: 1.45;
 }
